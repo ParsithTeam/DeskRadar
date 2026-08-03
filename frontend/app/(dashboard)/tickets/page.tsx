@@ -1,167 +1,384 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { FileUp, Search, Sparkles } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { useAppData } from "@/lib/app-context";
 import { useAuth } from "@/lib/auth-context";
-import UrgencyBadge from "@/components/status-badge";
+import { AccessDenied, EmptyState } from "@/components/loading-state";
+import UrgencyBadge, {
+  AnalysisStatusBadge,
+  TicketStatusBadge,
+} from "@/components/status-badge";
+import type {
+  TicketCategory,
+  TicketStatus,
+  Urgency,
+} from "@/types";
 
-interface Ticket {
-  id: number;
-  title: string;
-  description: string;
-  category: "vpn" | "email" | "network" | "printer" | "account";
-  category_label_fa: string;
-  urgency: "low" | "medium" | "high" | "critical";
-  status: "open" | "in_progress" | "resolved" | "closed";
-  analysis_status: "pending" | "complete" | "failed";
-  confidence: number;
-  created_at: string;
+const PAGE_SIZE = 6;
+
+function parseCsv(text: string) {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter(Boolean);
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(",").map((item) => item.trim().toLowerCase());
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cells = line.split(",").map((item) => item.trim());
+      const value = (key: string) => cells[headers.indexOf(key)] || "";
+      return {
+        title: value("title"),
+        description: value("description"),
+        department: value("department") || "نامشخص",
+        createdAt: value("created_at"),
+      };
+    })
+    .filter((row) => row.title && row.description);
 }
-
-const mockTickets: Ticket[] = [
-  { id: 101, title: "مشکل عدم اتصال به VPN سازمان", description: "خطای احراز هویت میده و نیم ساعت دیگه جلسه دارم کارم کاملاً خوابیده.", category: "vpn", category_label_fa: "مشکل VPN", urgency: "critical", status: "open", analysis_status: "complete", confidence: 0.89, created_at: "۱۴۰۵/۰۳/۱۱ - ۱۰:۰۰" },
-  { id: 102, title: "عدم باز شدن سرویس ایمیل بعد از تغییر رمز", description: "بعد از تغییر رمز عبور در اکتیو دایرکتوری، دیگه نمی‌تونم وارد اینباکس Outlook بشم.", category: "email", category_label_fa: "سرویس ایمیل", urgency: "high", status: "in_progress", analysis_status: "complete", confidence: 0.94, created_at: "۱۴۰۵/۰۳/۱۱ - ۱۰:۰۵" },
-  { id: 103, title: "آفلاین بودن پرینتر طبقه دوم کارگاه", description: "پرینتر طبقه دوم آفلاین است و هیچ فایلی از سیستم‌های بچه خط چاپ ارسال نمیشه.", category: "printer", category_label_fa: "پرینتر و سخت‌افزار", urgency: "medium", status: "open", analysis_status: "pending", confidence: 0.0, created_at: "۱۴۰۵/۰۳/۱۱ - ۱۰:۱۰" },
-  { id: 104, title: "درخواست دسترسی به مخازن گیت‌لب واحد DevOps", description: "برای پروژه جدید رادار نیاز به دسترسی Developer روی ریپازیتوری فرانت دارم.", category: "account", category_label_fa: "حساب و دسترسی", urgency: "low", status: "resolved", analysis_status: "complete", confidence: 0.91, created_at: "۱۴۰۵/۰۳/۱۰ - ۱۶:۴۵" }
-];
 
 export default function TicketsPage() {
   const { user } = useAuth();
+  const { tickets, analyzeTicket, importTickets } = useAppData();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedUrgency, setSelectedUrgency] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState<
+    TicketCategory | "all"
+  >("all");
+  const [selectedUrgency, setSelectedUrgency] = useState<Urgency | "all">(
+    "all",
+  );
+  const [selectedStatus, setSelectedStatus] = useState<TicketStatus | "all">(
+    "all",
+  );
+  const [page, setPage] = useState(1);
+  const [notice, setNotice] = useState("");
 
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-2">
-        <p className="text-sm font-bold text-slate-800">خطای دسترسی محدود</p>
-        <p className="text-xs text-slate-400">شما مجوز دسترسی به صندوق مرکزی تیکت‌ها را ندارید.</p>
-      </div>
-    );
-  }
+  const filteredTickets = useMemo(
+    () =>
+      tickets.filter((ticket) => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+        const matchesSearch =
+          !normalizedSearch ||
+          ticket.title.toLowerCase().includes(normalizedSearch) ||
+          ticket.description.toLowerCase().includes(normalizedSearch) ||
+          ticket.requesterName.toLowerCase().includes(normalizedSearch);
+        const matchesCategory =
+          selectedCategory === "all" || ticket.category === selectedCategory;
+        const matchesUrgency =
+          selectedUrgency === "all" || ticket.urgency === selectedUrgency;
+        const matchesStatus =
+          selectedStatus === "all" || ticket.status === selectedStatus;
+        return (
+          matchesSearch &&
+          matchesCategory &&
+          matchesUrgency &&
+          matchesStatus
+        );
+      }),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedStatus,
+      selectedUrgency,
+      tickets,
+    ],
+  );
 
-  const handleAnalyze = (id: number) => {
-    alert(`درخواست تحلیل هوش مصنوعی برای تیکت #${id} ارسال شد.`);
+  if (!user || user.role !== "admin") return <AccessDenied />;
+
+  const pageCount = Math.max(Math.ceil(filteredTickets.length / PAGE_SIZE), 1);
+  const safePage = Math.min(page, pageCount);
+  const pageTickets = filteredTickets.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
+
+  const updateFilter = (callback: () => void) => {
+    callback();
+    setPage(1);
   };
 
-  const filteredTickets = mockTickets.filter((ticket) => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) || ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || ticket.category === selectedCategory;
-    const matchesUrgency = selectedUrgency === "all" || ticket.urgency === selectedUrgency;
-    return matchesSearch && matchesCategory && matchesUrgency;
-  });
+  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const rows = parseCsv(await file.text());
+    if (!rows.length) {
+      setNotice(
+        "فایل معتبر نیست. ستون‌های title، description و department را بررسی کنید.",
+      );
+    } else {
+      const count = importTickets(rows, user);
+      setNotice(`${count.toLocaleString("fa-IR")} تیکت با موفقیت وارد شد.`);
+    }
+    event.target.value = "";
+  };
 
   return (
     <div className="space-y-6">
-      
-      <div className="space-y-2">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">صندوق ورودی تیکت‌ها</h1>
-          <span className="text-xs font-bold text-slate-400 font-mono">({filteredTickets.length})</span>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-baseline gap-2">
+            <h1 className="page-title">صندوق ورودی تیکت‌ها</h1>
+            <span className="text-xs font-bold text-slate-400">
+              ({filteredTickets.length.toLocaleString("fa-IR")})
+            </span>
+          </div>
+          <p className="page-description">
+            رصد تحلیل هوشمند و وضعیت تمام تیکت‌های سازمان
+          </p>
         </div>
-        <p className="text-xs text-slate-400">رصد زیرساخت هوشمندی و وضعیت تیکت‌های IT سازمان</p>
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFile}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            <FileUp className="w-4 h-4" />
+            ورود فایل CSV
+          </button>
+        </div>
       </div>
 
-      {/* نوار فیلترها */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs pt-1">
-        <div className="relative w-full sm:w-72">
-          <span className="absolute inset-y-0 right-3 flex items-center text-slate-400 pointer-events-none">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          </span>
+      {notice && (
+        <div className="panel px-4 py-3 flex items-center justify-between gap-4">
+          <p className="text-[11px] font-bold text-slate-600">{notice}</p>
+          <button
+            type="button"
+            onClick={() => setNotice("")}
+            className="text-[10px] text-slate-400 cursor-pointer"
+          >
+            بستن
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
+        <div className="relative w-full xl:w-80">
+          <Search className="absolute inset-y-0 my-auto right-3 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           <input
-            type="text"
-            placeholder="جستجو در عنوان یا شرح درخواست..."
+            type="search"
+            placeholder="جستجو در عنوان، شرح یا نام درخواست‌کننده..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pr-8 pl-3 py-1.5 border border-slate-200 rounded-xl bg-white text-slate-800 placeholder-slate-400 transition-all focus:outline-none focus:border-slate-400"
+            onChange={(event) =>
+              updateFilter(() => setSearchTerm(event.target.value))
+            }
+            className="w-full pr-9 pl-3 py-2.5 border border-slate-200 rounded-xl bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex items-center bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 hover:border-slate-300 transition-colors">
-            <span className="text-slate-400 text-[10px] font-bold ml-1 select-none">دپارتمان:</span>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-transparent text-slate-700 font-semibold focus:outline-none appearance-none pl-4 pr-0 cursor-pointer text-[11px]"
-            >
-              <option value="all">همه</option>
-              <option value="vpn">مشکلات VPN</option>
-              <option value="email">سرویس ایمیل</option>
-              <option value="printer">پرینتر و سخت‌افزار</option>
-              <option value="account">حساب و دسترسی</option>
-            </select>
-            <span className="absolute left-2.5 pointer-events-none text-slate-400 text-[9px]">▼</span>
-          </div>
-
-          <div className="relative flex items-center bg-white border border-slate-200/80 rounded-xl px-2.5 py-1.5 hover:border-slate-300 transition-colors">
-            <span className="text-slate-400 text-[10px] font-bold ml-1 select-none">اولویت:</span>
-            <select
-              value={selectedUrgency}
-              onChange={(e) => setSelectedUrgency(e.target.value)}
-              className="bg-transparent text-slate-700 font-semibold focus:outline-none appearance-none pl-4 pr-0 cursor-pointer text-[11px]"
-            >
-              <option value="all">همه</option>
-              <option value="low">کم اهمیت</option>
-              <option value="medium">متوسط</option>
-              <option value="high">فوری</option>
-              <option value="critical">بحرانی</option>
-            </select>
-            <span className="absolute left-2.5 pointer-events-none text-slate-400 text-[9px]">▼</span>
-          </div>
+          <FilterSelect
+            label="دسته"
+            value={selectedCategory}
+            onChange={(value) =>
+              updateFilter(() =>
+                setSelectedCategory(value as TicketCategory | "all"),
+              )
+            }
+            options={[
+              ["all", "همه"],
+              ["vpn", "مشکلات VPN"],
+              ["email", "سرویس ایمیل"],
+              ["network", "شبکه"],
+              ["printer", "پرینتر"],
+              ["account", "حساب و دسترسی"],
+            ]}
+          />
+          <FilterSelect
+            label="اولویت"
+            value={selectedUrgency}
+            onChange={(value) =>
+              updateFilter(() =>
+                setSelectedUrgency(value as Urgency | "all"),
+              )
+            }
+            options={[
+              ["all", "همه"],
+              ["low", "کم"],
+              ["medium", "متوسط"],
+              ["high", "فوری"],
+              ["critical", "بحرانی"],
+            ]}
+          />
+          <FilterSelect
+            label="وضعیت"
+            value={selectedStatus}
+            onChange={(value) =>
+              updateFilter(() =>
+                setSelectedStatus(value as TicketStatus | "all"),
+              )
+            }
+            options={[
+              ["all", "همه"],
+              ["open", "باز"],
+              ["in_progress", "در حال پیگیری"],
+              ["escalated", "ارجاع‌شده"],
+              ["resolved", "حل‌شده"],
+            ]}
+          />
         </div>
       </div>
 
-      {/* جدول تیکت‌ها */}
-      <div className="bg-white rounded-2xl border border-slate-200/40 shadow-[0_2px_12px_rgba(0,0,0,0.01)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 tracking-wide uppercase bg-slate-55/30">
-                <th className="py-3.5 px-6 w-20">شناسه</th>
-                <th className="py-3.5 px-4">شرح درخواست تیکت</th>
-                <th className="py-3.5 px-4 w-36">دسته‌بندی</th>
-                <th className="py-3.5 px-4 w-36">اولویت سیستم</th>
-                <th className="py-3.5 px-4 w-24 text-center">اطمینان AI</th>
-                <th className="py-3.5 px-4 w-28 text-center">وضعیت</th>
-                <th className="py-3.5 px-6 w-40 text-left">زمان ثبت</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs text-slate-600 divide-y divide-slate-50/60">
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="py-4.5 px-6 font-mono text-slate-400 text-[11px]">#{ticket.id}</td>
-                  <td className="py-4.5 px-4 max-w-md">
-                    <div className="space-y-0.5">
-                      <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{ticket.title}</p>
-                      <p className="text-[11px] text-slate-400 font-normal leading-relaxed truncate">{ticket.description}</p>
-                    </div>
-                  </td>
-                  <td className="py-4.5 px-4 text-slate-500 font-medium">{ticket.category_label_fa}</td>
-                  <td className="py-4.5 px-4"><UrgencyBadge level={ticket.urgency} /></td>
-                  <td className="py-4.5 px-4 text-center font-mono font-bold text-slate-700">
-                    {ticket.analysis_status === "complete" ? (
-                      <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-[11px]">{(ticket.confidence * 100).toFixed(0)}%</span>
-                    ) : <span className="text-slate-300">---</span>}
-                  </td>
-                  <td className="py-4.5 px-4 text-center">
-                    {ticket.analysis_status === "complete" && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50/70 text-blue-600">
-                        <span className="w-1 h-1 rounded-full bg-blue-500" /> تحلیل شده
-                      </span>
-                    )}
-                    {ticket.analysis_status === "pending" && (
-                      <button onClick={() => handleAnalyze(ticket.id)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200/40 hover:bg-amber-100 transition-colors cursor-pointer animate-pulse">
-                        ⚡ تحلیل AI
-                      </button>
-                    )}
-                  </td>
-                  <td className="py-4.5 px-6 text-left text-slate-400 font-medium font-mono text-[11px]">{ticket.created_at}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="panel overflow-hidden">
+        {pageTickets.length ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[970px] text-right border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 bg-slate-50/40">
+                    <th className="py-3.5 px-5 w-20">شناسه</th>
+                    <th className="py-3.5 px-4">شرح درخواست</th>
+                    <th className="py-3.5 px-4 w-32">دسته‌بندی</th>
+                    <th className="py-3.5 px-4 w-28">اولویت</th>
+                    <th className="py-3.5 px-4 w-32">تحلیل AI</th>
+                    <th className="py-3.5 px-4 w-28">وضعیت</th>
+                    <th className="py-3.5 px-5 w-36 text-left">زمان ثبت</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs text-slate-600 divide-y divide-slate-100">
+                  {pageTickets.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      className="hover:bg-slate-50/40 transition-colors"
+                    >
+                      <td className="py-4 px-5 text-slate-400 text-[11px]">
+                        #{ticket.id.toLocaleString("fa-IR")}
+                      </td>
+                      <td className="py-4 px-4 max-w-md">
+                        <Link
+                          href={`/tickets/${ticket.id}`}
+                          className="group block"
+                        >
+                          <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                            {ticket.title}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-1 truncate">
+                            {ticket.requesterName} · {ticket.department}
+                          </p>
+                        </Link>
+                      </td>
+                      <td className="py-4 px-4 text-[11px] font-medium">
+                        {ticket.categoryLabelFa}
+                      </td>
+                      <td className="py-4 px-4">
+                        <UrgencyBadge level={ticket.urgency} />
+                      </td>
+                      <td className="py-4 px-4">
+                        {ticket.analysisStatus === "pending" ? (
+                          <button
+                            type="button"
+                            onClick={() => analyzeTicket(ticket.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100 transition-colors cursor-pointer"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            تحلیل مجدد
+                          </button>
+                        ) : (
+                          <div className="space-y-1">
+                            <AnalysisStatusBadge
+                              status={ticket.analysisStatus}
+                            />
+                            {ticket.analysisStatus === "complete" && (
+                              <span className="block text-[9px] text-slate-400 pr-1">
+                                اطمینان{" "}
+                                {(ticket.confidence * 100).toLocaleString(
+                                  "fa-IR",
+                                )}
+                                ٪
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        <TicketStatusBadge status={ticket.status} />
+                      </td>
+                      <td className="py-4 px-5 text-left text-slate-400 text-[10px]">
+                        {ticket.createdAt}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {pageCount > 1 && (
+              <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  صفحه {safePage.toLocaleString("fa-IR")} از{" "}
+                  {pageCount.toLocaleString("fa-IR")}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={safePage === 1}
+                    onClick={() => setPage((current) => current - 1)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 disabled:opacity-40 cursor-pointer"
+                  >
+                    قبلی
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safePage === pageCount}
+                    onClick={() => setPage((current) => current + 1)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 disabled:opacity-40 cursor-pointer"
+                  >
+                    بعدی
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <EmptyState
+            title="تیکتی با این فیلتر پیدا نشد"
+            description="عبارت جستجو یا فیلترهای انتخاب‌شده را تغییر دهید."
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: [string, string][];
+}) {
+  return (
+    <label className="flex items-center bg-white border border-slate-200 rounded-xl px-2.5 py-2">
+      <span className="text-slate-400 text-[10px] font-bold ml-1.5">
+        {label}:
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer text-[10px]"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

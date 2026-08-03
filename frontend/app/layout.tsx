@@ -1,7 +1,9 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import { AuthProvider } from "@/lib/auth-context";
+import { AppProvider } from "@/lib/app-context";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "ServiceDesk Radar",
   description: "AI-Powered Service Desk Dashboard",
 };
@@ -15,7 +17,7 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <body>
         <AuthProvider>
-          {children}
+          <AppProvider>{children}</AppProvider>
         </AuthProvider>
       </body>
     </html>
