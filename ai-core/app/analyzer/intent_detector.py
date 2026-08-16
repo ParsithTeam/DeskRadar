@@ -1,10 +1,25 @@
-from intent_config import (
+from .intent_config import (
     GENERAL_INTENT_TEMPLATE,
     INTENT_LABELS_FA,
     INTENT_RULES,
     UNKNOWN_INTENT,
 )
-from normalizer import normalize_persian_text
+from .normalizer import find_normalized_matches, normalize_persian_text
+
+INTENT_SPECIFICITY_BOOSTS = {
+    "vpn_authentication_error": 0.16,
+    "email_quota_issue": 0.10,
+    "account_lock": 0.10,
+    "software_license_issue": 0.10,
+    "printer_supply_issue": 0.08,
+    "print_queue": 0.08,
+    "network_wifi_issue": 0.10,
+    "network_lan_issue": 0.10,
+    "hardware_peripheral_issue": 0.10,
+    "hardware_request": 0.15,
+    "permission_remove_access": 0.25,
+    "permission_denied": 0.08,
+}
 
 
 def normalize_category(category: str) -> str:
@@ -32,17 +47,7 @@ def get_intent_label_fa(intent: str) -> str:
 
 
 def find_keyword_matches(text: str, keywords: list) -> list:
-    matches = []
-    seen = set()
-
-    for keyword in keywords:
-        clean_keyword = normalize_keyword(keyword)
-
-        if clean_keyword and clean_keyword in text and clean_keyword not in seen:
-            matches.append(clean_keyword)
-            seen.add(clean_keyword)
-
-    return matches
+    return find_normalized_matches(text, keywords)
 
 
 def analyze_intent(text: str, category: str) -> dict:
@@ -90,7 +95,10 @@ def analyze_intent(text: str, category: str) -> dict:
         if not matches:
             continue
 
-        score = min(1.0, 0.55 + (len(matches) * 0.15))
+        score = min(
+            1.0,
+            0.55 + (len(matches) * 0.15) + INTENT_SPECIFICITY_BOOSTS.get(intent, 0.0),
+        )
 
         if score > best_score:
             best_intent = intent

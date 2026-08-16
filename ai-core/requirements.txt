@@ -1,0 +1,6 @@
+fastapi>=0.115,<1.0
+httpx>=0.28,<1.0
+pydantic>=2.8,<3.0
+torch>=2.2,<3.0
+transformers>=4.48,<6.0
+uvicorn[standard]>=0.34,<1.0

@@ -19,7 +19,7 @@ CATEGORY_TOP_K = 3
 
 ZERO_SHOT_MODEL_NAME = "MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli"
 ZERO_SHOT_HYPOTHESIS_TEMPLATE = "موضوع این تیکت مربوط به {} است."
-ANALYZER_MODEL_VERSION = "ai-analyzer-fa-v1"
+ANALYZER_MODEL_VERSION = "ai-analyzer-fa-v2.0.0"
 UNKNOWN_CATEGORY = "unknown"
 
 CATEGORY_KEYWORDS = {
@@ -37,6 +37,7 @@ CATEGORY_KEYWORDS = {
     "email": [
         "email",
         "ایمیل",
+        "ایمیلی",
         "ایمیل سازمانی",
         "صندوق پستی",
         "outlook",
@@ -53,6 +54,10 @@ CATEGORY_KEYWORDS = {
         "کابل شبکه",
         "lan",
         "ping",
+        "ssid",
+        "ethernet",
+        "dns",
+        "dhcp",
     ],
     "printer": [
         "پرینتر",
@@ -65,6 +70,7 @@ CATEGORY_KEYWORDS = {
         "paper jam",
     ],
     "account": [
+        "حساب",
         "حساب کاربری",
         "اکانت",
         "رمز",
@@ -74,6 +80,7 @@ CATEGORY_KEYWORDS = {
         "لاگین",
         "ورود",
         "قفل",
+        "پورتال",
     ],
     "hardware": [
         "سخت افزار",
@@ -85,6 +92,10 @@ CATEGORY_KEYWORDS = {
         "موس",
         "کیبورد",
         "تجهیزات",
+        "هارد",
+        "هدست",
+        "وبکم",
+        "اسپیکر",
         "روشن نمی‌شود",
     ],
     "software": [
@@ -97,6 +108,11 @@ CATEGORY_KEYWORDS = {
         "install",
         "license",
         "کرش",
+        "برنامه",
+        "اپلیکیشن",
+        "لایسنس",
+        "activation",
+        "crm",
     ],
     "permission": [
         "دسترسی",

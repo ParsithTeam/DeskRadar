@@ -1,6 +1,6 @@
 import re
 import unicodedata
-
+from collections.abc import Iterable
 
 CHARACTER_REPLACEMENTS = {
     "ي": "ی",
@@ -12,7 +12,6 @@ CHARACTER_REPLACEMENTS = {
     "أ": "ا",
     "إ": "ا",
     "ٱ": "ا",
-    "‌": " ",
     "\u200c": " ",
     "\u200f": " ",
     "\u200e": " ",
@@ -86,10 +85,7 @@ def replace_characters(text: str) -> str:
 
 
 def remove_diacritics(text: str) -> str:
-    return "".join(
-        char for char in text
-        if unicodedata.category(char) != "Mn"
-    )
+    return "".join(char for char in text if unicodedata.category(char) != "Mn")
 
 
 def normalize_digits(text: str) -> str:
@@ -137,6 +133,42 @@ def normalize_persian_text(text: str) -> str:
     text = collapse_spaces(text)
 
     return text
+
+
+def contains_normalized_phrase(text: str, phrase: str) -> bool:
+    """Return whether a normalized phrase exists as complete token(s).
+
+    Plain substring checks create false positives for short rules such as ``ip``
+    or ``رمز``. Both values are normalized here and token boundaries are enforced
+    while still allowing flexible whitespace inside multi-word phrases.
+    """
+    clean_text = normalize_persian_text(text)
+    clean_phrase = normalize_persian_text(phrase)
+
+    if not clean_text or not clean_phrase:
+        return False
+
+    pattern = re.escape(clean_phrase).replace(r"\ ", r"\s+")
+    return re.search(rf"(?<!\w){pattern}(?!\w)", clean_text) is not None
+
+
+def find_normalized_matches(text: str, phrases: Iterable[str]) -> list[str]:
+    """Return unique normalized rules that match *text*, preserving rule order."""
+    clean_text = normalize_persian_text(text)
+    matches: list[str] = []
+    seen: set[str] = set()
+
+    for phrase in phrases:
+        clean_phrase = normalize_persian_text(phrase)
+        if (
+            clean_phrase
+            and clean_phrase not in seen
+            and contains_normalized_phrase(clean_text, clean_phrase)
+        ):
+            matches.append(clean_phrase)
+            seen.add(clean_phrase)
+
+    return matches
 
 
 if __name__ == "__main__":

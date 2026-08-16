@@ -1,5 +1,10 @@
-import config
-from normalizer import normalize_persian_text
+import logging
+import threading
+
+from . import config
+from .normalizer import find_normalized_matches, normalize_persian_text
+
+logger = logging.getLogger(__name__)
 
 CATEGORY_FALLBACK_THRESHOLD = getattr(config, "CATEGORY_FALLBACK_THRESHOLD", 0.55)
 CATEGORY_MAP = config.CATEGORY_MAP
@@ -23,26 +28,60 @@ HYPOTHESIS_TEMPLATE = getattr(
 MODEL_STRONG_CONFIDENCE = 0.90
 RULE_OVERRIDE_MODEL_LIMIT = 0.85
 
+STRONG_CATEGORY_KEYWORDS = {
+    "vpn": {"vpn", "remote access", "anyconnect", "forticlient", "openvpn"},
+    "email": {"email", "outlook", "mailbox"},
+    "network": {"internet", "wifi", "lan", "ssid", "ethernet", "dns", "dhcp"},
+    "printer": {"printer", "print", "تونر", "کارتریج"},
+    "account": {"account", "password", "login", "حساب", "پورتال"},
+    "hardware": {"hardware", "laptop", "monitor", "هارد", "هدست", "وبکم"},
+    "software": {"software", "برنامه", "اپلیکیشن", "لایسنس", "activation", "crm"},
+    "permission": {"access", "permission", "file", "folder"},
+}
+
+DOMINANT_CATEGORY_KEYWORDS = {
+    "vpn": {"vpn", "remote access", "anyconnect", "forticlient", "openvpn"},
+    "email": {"email", "outlook", "mailbox"},
+    "network": {"internet", "wifi", "lan", "ssid", "ethernet"},
+    "printer": {"printer"},
+    "account": {"account", "password", "login", "پورتال"},
+    "hardware": {"hardware", "laptop", "monitor", "هارد"},
+    "software": {"software", "اپلیکیشن", "لایسنس", "crm"},
+    "permission": {"access denied", "permission denied", "shared folder"},
+}
+
 _classifier = None
+_classifier_lock = threading.Lock()
+_inference_lock = threading.Lock()
 
 
 def get_classifier():
     global _classifier
 
     if _classifier is None:
-        try:
-            from transformers import pipeline
-        except ImportError as exc:
-            raise RuntimeError(
-                "کتابخانه transformers نصب نیست. برای اجرای zero-shot category باید transformers و torch نصب باشند."
-            ) from exc
+        with _classifier_lock:
+            if _classifier is None:
+                try:
+                    from transformers import pipeline
+                except ImportError as exc:
+                    raise RuntimeError("کتابخانه‌های لازم برای مدل zero-shot نصب نیستند.") from exc
 
-        _classifier = pipeline(
-            "zero-shot-classification",
-            model=MODEL_NAME,
-        )
+                _classifier = pipeline(
+                    "zero-shot-classification",
+                    model=MODEL_NAME,
+                )
 
     return _classifier
+
+
+def preload_classifier() -> bool:
+    """Load the classifier once during application startup."""
+    get_classifier()
+    return True
+
+
+def is_classifier_loaded() -> bool:
+    return _classifier is not None
 
 
 def get_category_label_fa(category_code: str) -> str:
@@ -72,7 +111,7 @@ def build_empty_result(reason: str = "متن تیکت خالی است.") -> dict
 def build_top_labels(labels: list, scores: list) -> list:
     top_labels = []
 
-    for label, score in zip(labels[:CATEGORY_TOP_K], scores[:CATEGORY_TOP_K]):
+    for label, score in zip(labels[:CATEGORY_TOP_K], scores[:CATEGORY_TOP_K], strict=False):
         category_code = CATEGORY_MAP.get(label, UNKNOWN_CATEGORY)
 
         top_labels.append(
@@ -92,26 +131,19 @@ def find_keyword_category(clean_text: str) -> dict:
     best_score = 0.0
 
     for category_code, keywords in CATEGORY_KEYWORDS.items():
-        matches = []
-        seen = set()
-
-        for keyword in keywords:
-            clean_keyword = normalize_persian_text(keyword)
-
-            if (
-                clean_keyword
-                and clean_keyword in clean_text
-                and clean_keyword not in seen
-            ):
-                matches.append(clean_keyword)
-                seen.add(clean_keyword)
+        matches = find_normalized_matches(clean_text, keywords)
 
         if not matches:
             continue
 
-        score = min(1.0, 0.55 + (len(matches) * 0.10))
+        score = 0.55 + (len(matches) * 0.10)
+        if any(match in STRONG_CATEGORY_KEYWORDS.get(category_code, set()) for match in matches):
+            score += 0.20
+        if any(match in DOMINANT_CATEGORY_KEYWORDS.get(category_code, set()) for match in matches):
+            score += 0.15
+        score = min(1.0, score)
 
-        if score > best_score:
+        if score > best_score or (score == best_score and len(matches) > len(best_matches)):
             best_category = category_code
             best_matches = matches
             best_score = score
@@ -126,12 +158,13 @@ def find_keyword_category(clean_text: str) -> dict:
 def classify_with_model(clean_text: str) -> dict:
     classifier = get_classifier()
 
-    result = classifier(
-        clean_text,
-        candidate_labels=CATEGORY_LABELS_FA,
-        hypothesis_template=HYPOTHESIS_TEMPLATE,
-        multi_label=False,
-    )
+    with _inference_lock:
+        result = classifier(
+            clean_text,
+            candidate_labels=CATEGORY_LABELS_FA,
+            hypothesis_template=HYPOTHESIS_TEMPLATE,
+            multi_label=False,
+        )
 
     labels = result.get("labels", [])
     scores = result.get("scores", [])
@@ -177,6 +210,7 @@ def build_rule_result(
 
 
 def apply_rule_fallback(clean_text: str, model_result: dict) -> dict:
+    model_result = dict(model_result)
     keyword_result = find_keyword_category(clean_text)
 
     model_category = model_result.get("category", UNKNOWN_CATEGORY)
@@ -210,25 +244,25 @@ def apply_rule_fallback(clean_text: str, model_result: dict) -> dict:
 
         return build_empty_result("مدل و rule fallback دسته‌بندی معتبری پیدا نکردند.")
 
+    if keyword_score >= 0.85 and keyword_category != model_category:
+        return build_rule_result(
+            keyword_result=keyword_result,
+            category_source="rule_override",
+            reason="عبارت صریح دامنه IT از پیشنهاد مدل دقیق‌تر بود و دسته‌بندی را اصلاح کرد.",
+            top_labels=top_labels,
+        )
+
     if keyword_category == model_category:
         model_result["matched_keywords"] = keyword_result.get("matched_keywords", [])
 
-        if (
-            model_score < CATEGORY_THRESHOLD
-            and keyword_score >= CATEGORY_FALLBACK_THRESHOLD
-        ):
+        if model_score < CATEGORY_THRESHOLD and keyword_score >= CATEGORY_FALLBACK_THRESHOLD:
             model_result["category_score"] = max(model_score, keyword_score)
             model_result["category_source"] = "model_rule_agreement"
-            model_result["reason"] = (
-                "مدل و rule fallback روی یک دسته‌بندی توافق داشتند."
-            )
+            model_result["reason"] = "مدل و rule fallback روی یک دسته‌بندی توافق داشتند."
 
         return model_result
 
-    if (
-        keyword_score >= CATEGORY_FALLBACK_THRESHOLD
-        and model_score < RULE_OVERRIDE_MODEL_LIMIT
-    ):
+    if keyword_score >= CATEGORY_FALLBACK_THRESHOLD and model_score < RULE_OVERRIDE_MODEL_LIMIT:
         return build_rule_result(
             keyword_result=keyword_result,
             category_source="rule_override",
@@ -250,7 +284,7 @@ def apply_rule_fallback(clean_text: str, model_result: dict) -> dict:
     return model_result
 
 
-def classify_category(text: str) -> dict:
+def classify_category(text: str, debug: bool = False) -> dict:
     clean_text = normalize_persian_text(text)
 
     if not clean_text:
@@ -261,27 +295,40 @@ def classify_category(text: str) -> dict:
     try:
         model_result = classify_with_model(clean_text)
     except Exception as error:
+        logger.warning("Zero-shot classification unavailable; using rules: %s", error)
         if (
             keyword_result.get("category") != UNKNOWN_CATEGORY
             and keyword_result.get("score", 0.0) >= CATEGORY_FALLBACK_THRESHOLD
         ):
-            return build_rule_result(
+            result = build_rule_result(
                 keyword_result=keyword_result,
                 category_source="rule_only_fallback",
-                reason=f"مدل zero-shot اجرا نشد و دسته‌بندی با rule fallback انجام شد. خطا: {error}",
+                reason="مدل zero-shot در دسترس نبود و دسته‌بندی با rule fallback انجام شد.",
                 top_labels=[],
             )
+            if debug:
+                result["debug"] = {
+                    "model_error_type": type(error).__name__,
+                    "model_error": str(error),
+                }
+            return result
 
-        return {
+        result = {
             "category": UNKNOWN_CATEGORY,
             "category_label_fa": get_category_label_fa(UNKNOWN_CATEGORY),
             "category_score": 0.0,
             "category_source": "model_failed",
             "top_labels": [],
             "matched_keywords": [],
-            "reason": f"مدل zero-shot اجرا نشد و rule fallback هم نتیجه معتبری نداشت. خطا: {error}",
+            "reason": "مدل zero-shot در دسترس نبود و rule fallback هم نتیجه معتبری نداشت.",
             "model_name": MODEL_NAME,
         }
+        if debug:
+            result["debug"] = {
+                "model_error_type": type(error).__name__,
+                "model_error": str(error),
+            }
+        return result
 
     return apply_rule_fallback(clean_text, model_result)
 
