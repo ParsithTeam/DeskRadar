@@ -1,58 +1,81 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { Bell, LifeBuoy, LogOut, Phone, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useAppData } from "@/lib/app-context";
 
 export default function Header() {
-  const { user, toggleRole } = useAuth();
+  const { user, logout } = useAuth();
+  const { alerts } = useAppData();
+  const unreadCount = alerts.filter((alert) => !alert.read).length;
 
   return (
-    <header className="h-18 bg-white border-b border-slate-200 flex items-center shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-      
-      <div className="w-64 h-full flex items-center gap-3 px-8 border-l border-slate-200">
-        <img src="/deskino-logo.svg" alt="لوگو دسکینو" className="object-contain" />
+    <header className="h-[72px] bg-white border-b border-slate-200 flex items-center shadow-[0_1px_3px_rgba(0,0,0,0.02)] sticky top-0 z-30">
+      <div className="w-auto lg:w-64 h-full flex items-center gap-3 px-4 lg:px-8 lg:border-l border-slate-200">
+        <Image
+          src="/deskino-logo.svg"
+          alt="لوگو دسکینو"
+          width={136}
+          height={36}
+          priority
+          className="object-contain"
+        />
       </div>
 
-      <div className="flex-1 h-full px-6 flex items-center justify-end gap-6">
-        
-        <div className="flex items-center gap-6 text-sm text-slate-500">
-          <button 
-            onClick={toggleRole}
-            className="text-xs font-bold hover:underline  hover:text-slate-800 transition-colors cursor-pointer">
-           سوییچ نقش
+      <div className="flex-1 h-full px-4 sm:px-6 flex items-center justify-end gap-3 sm:gap-5">
+        <div className="hidden md:flex items-center gap-5 text-xs text-slate-500">
+          <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors cursor-pointer">
+            <LifeBuoy className="w-4 h-4" />
+            راهنما
           </button>
-          <button className="flex items-center gap-1 hover:text-slate-800 transition-colors cursor-pointer">
-           مدیریت
-          </button>
-          <button className="flex items-center gap-1 hover:text-slate-800 transition-colors cursor-pointer">
-           پشتیبانی تلفنی
+          <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors cursor-pointer">
+            <Phone className="w-4 h-4" />
+            پشتیبانی تلفنی
           </button>
         </div>
-        
-        <div className="w-px h-5 bg-slate-200" />
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-slate-650">{user?.name || "احمد احمدی"}</span>
-          
-          <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center shadow-inner">
-            <svg 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-slate-500 w-4 h-4"
-            >
-              <path 
-                d="M15.75 6C15.75 6.99456 15.3549 7.94839 14.6516 8.65165C13.9484 9.35491 12.9945 9.75 12 9.75C11.0054 9.75 10.0516 9.35491 9.34833 8.65165C8.64506 7.94839 8.24998 6.99456 8.24998 6C8.24998 5.00544 8.64506 4.05161 9.34833 3.34835C10.0516 2.64509 11.0054 2.25 12 2.25C12.9945 2.25 13.9484 2.64509 14.6516 3.34835C15.3549 4.05161 15.75 5.00544 15.75 6ZM4.50098 20.118C4.53311 18.1504 5.33731 16.2742 6.74015 14.894C8.14299 13.5139 10.0321 12.7405 12 12.7405C13.9679 12.7405 15.857 13.5139 17.2598 14.894C18.6626 16.2742 19.4668 18.1504 19.499 20.118C17.1464 21.1968 14.5881 21.7535 12 21.75C9.32398 21.75 6.78398 21.166 4.50098 20.118Z" 
-                stroke="currentColor"
-                strokeWidth="1.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
+        {user?.role === "admin" && (
+          <Link
+            href="/alerts"
+            aria-label="هشدارها"
+            className="relative w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -left-1 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[8px] font-bold flex items-center justify-center">
+                {unreadCount.toLocaleString("fa-IR")}
+              </span>
+            )}
+          </Link>
+        )}
+
+        <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+
+        <div className="flex items-center gap-2.5">
+          <div className="hidden sm:block text-left">
+            <span className="text-xs font-bold text-slate-700 block">
+              {user?.name || "کاربر سیستم"}
+            </span>
+            <span className="text-[9px] text-slate-400">
+              {user?.role === "admin" ? "مدیر پشتیبانی" : "کاربر سازمان"}
+            </span>
           </div>
-        </div>
 
+          <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+            <UserRound className="text-slate-500 w-4 h-4" />
+          </div>
+
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="خروج از حساب"
+            className="lg:hidden w-9 h-9 rounded-xl text-rose-500 hover:bg-rose-50 flex items-center justify-center cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </header>
   );
