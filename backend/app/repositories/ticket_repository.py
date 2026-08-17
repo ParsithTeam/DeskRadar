@@ -1,19 +1,20 @@
-from datetime import datetime
 import hashlib
-from typing import List, Optional
+from datetime import datetime
+
 from app.core.data_enum import Analysis_Status, Ticket_Status
+
 #-----------------------------------------
 #from app.models.ticket import TicketModel   //TODO:بعد از اتصال دیتا بیس از این مدل واقعی استفاده میکنیم
 #-----------------------------------------
 
-FAKE_TICKETS_DB :List[dict] = []
+FAKE_TICKETS_DB :list[dict] = []
 _id_counter = 777
 
 class TicketRepository:
     # ساخت اثر انگشت مخصوص، بعدا بنظرم بهتهره زمان هم به متد هش اضافه کرد
     def _generate_fingerprint(self, title: str,
                               description: str,
-                              requester: Optional[str]) -> str:
+                              requester: str | None) -> str:
         req = requester or "nobody"
         raw_text = f"{title.lower()}{description.lower()}{req.lower()}"
         return hashlib.md5(raw_text.encode("utf-8")).hexdigest()
@@ -27,7 +28,7 @@ class TicketRepository:
     
     async def is_already_exist(self, title: str,
                               description: str,
-                              requester: Optional[str]) -> Optional[dict]:
+                              requester: str | None) -> dict | None:
         finger_print = self._generate_fingerprint(title=title, description=description, requester=requester)
 
         for T in FAKE_TICKETS_DB:
@@ -35,7 +36,7 @@ class TicketRepository:
                 return T
         return None
     
-    async def get_by_id(self, target_ticket_id: int)-> Optional[dict]:
+    async def get_by_id(self, target_ticket_id: int)-> dict | None:
 
         for T in FAKE_TICKETS_DB:
             if T.get("ticket_id") == target_ticket_id:
@@ -45,8 +46,8 @@ class TicketRepository:
     
     async def save_new_ticket(self, title: str, 
                         description: str, 
-                        requester: Optional[str], 
-                        department: Optional[str]) -> dict:
+                        requester: str | None, 
+                        department: str | None) -> dict:
         
         # در آینده دیتابیس واقعی اینجا تزریق می‌شود:
         # def __init__(self, db_session): self.db = db_session
@@ -64,8 +65,8 @@ class TicketRepository:
             "analysis_status": Analysis_Status.PENDING,
             "source": "manual",
             "fingerprint": FINGER_PRINT,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now(),
+            "created_at": datetime.now(datetime.timezone.utc),
+            "updated_at": datetime.now(datetime.timezone.utc),
 
             "ai_analysis" : None
         }
@@ -78,12 +79,12 @@ class TicketRepository:
     async def update_ticket_analysis(self, 
                               ticket_id: int, 
                               new_analysis_status: Analysis_Status, 
-                              new_analysis_data: Optional[dict] = None)-> None:
+                              new_analysis_data: dict | None = None)-> None:
         
         for T in FAKE_TICKETS_DB:
             if T.get("ticket_id")== ticket_id:
                 T["ai_analysis"] = new_analysis_data
                 T["analysis_status"] = new_analysis_status
-                T["updated_at"] = datetime.now()
+                T["updated_at"] = datetime.now(datetime.timezone.utc)
                 break
 

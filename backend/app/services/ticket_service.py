@@ -1,8 +1,8 @@
-from fastapi import HTTPException, status, BackgroundTasks
-from app.repositories.ticket_repository import TicketRepository
 from app.core.data_enum import Analysis_Status, Ticket_Status
+from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
-from typing import Optional
+from fastapi import BackgroundTasks, HTTPException, status
+
 
 class TicketService:
 
@@ -15,8 +15,8 @@ class TicketService:
         self, 
         title: str, 
         description: str, 
-        requester: Optional[str], 
-        department: Optional[str], 
+        requester: str | None, 
+        department: str | None, 
         background_tasks: BackgroundTasks,
         auto_analyze: bool = True
     ) -> dict:

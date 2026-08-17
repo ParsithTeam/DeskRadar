@@ -1,7 +1,6 @@
-from fastapi import APIRouter, status, HTTPException, BackgroundTasks
 from app.schemas.ticket import TicketCreateRequest, TicketResponse
 from app.services.ticket_service import TicketService
-from datetime import datetime
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -33,11 +32,11 @@ async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: Ba
 async def get_all_tickets():
     return ["t1", "t2", "t3"]
 
+
 @router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) # //TODO: ریکوئست دریافت پاسخ یک تیکت خاص
 async def get_ticket_detail(ticket_id: int):
 
     try:
-
         response = await ticket_service.get_ticket_by_id(ticket_id=ticket_id)
         return response
     
