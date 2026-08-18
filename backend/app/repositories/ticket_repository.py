@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.data_enum import Analysis_Status, Ticket_Status
 
@@ -65,8 +65,8 @@ class TicketRepository:
             "analysis_status": Analysis_Status.PENDING,
             "source": "manual",
             "fingerprint": FINGER_PRINT,
-            "created_at": datetime.now(datetime.timezone.utc),
-            "updated_at": datetime.now(datetime.timezone.utc),
+            "created_at": datetime.now(tz=timezone.utc),
+            "updated_at": datetime.now(tz=timezone.utc),
 
             "ai_analysis" : None
         }
@@ -85,6 +85,6 @@ class TicketRepository:
             if T.get("ticket_id")== ticket_id:
                 T["ai_analysis"] = new_analysis_data
                 T["analysis_status"] = new_analysis_status
-                T["updated_at"] = datetime.now(datetime.timezone.utc)
+                T["updated_at"] = datetime.now(tz=timezone.utc)
                 break
 
