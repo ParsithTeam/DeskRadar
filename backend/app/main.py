@@ -3,6 +3,7 @@
 
 from fastapi import FastAPI
 from app.api.routes.tickets import router as ticket_router
+from  app.api.routes.alerts import router as alert_router
 app = FastAPI(
     title="ServiceDesk Radar API",
     version="1.0.0",
@@ -10,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(ticket_router, prefix="/api")
+app.include_router(alert_router)
 
 @app.get("/health")
 def health_check():
