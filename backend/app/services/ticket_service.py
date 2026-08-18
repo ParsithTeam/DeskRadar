@@ -10,7 +10,7 @@ class TicketService:
 
         self.ticket_repo = TicketRepository()
         self.analysis_serv = AnalysisService()
-
+    # ثبت تیکت جدید
     async def create_ticket(
         self, 
         title: str, 
@@ -21,9 +21,9 @@ class TicketService:
         auto_analyze: bool = True
     ) -> dict:
         
-        ALREADY_EXIST = await self.ticket_repo.is_already_exist(title=title, description=description, requester=requester)
+        already_exist = await self.ticket_repo.is_already_exist(title=title, description=description, requester=requester)
         
-        if ALREADY_EXIST:
+        if already_exist:
             raise HTTPException(
                 status_code= status.HTTP_400_BAD_REQUEST,
                 detail= "Ticket has already been submitted and it is in progress."
@@ -47,7 +47,7 @@ class TicketService:
             )
 
         return ticket_data
-    
+    #تسک اجرای تحلیل هوش مصنوعی در پس زمنیه
     async def run_ai_analysis(self, ticket_id: int,
                               title: str,
                               description: str) -> None:
@@ -65,7 +65,7 @@ class TicketService:
         except Exception as e:
             await self.ticket_repo.update_ticket_analysis(
                 ticket_id=ticket_id,
-                analysis_status=Analysis_Status.FAILED
+                new_analysis_status=Analysis_Status.FAILED
             )
             print(f"Background analysis failed for ticket {ticket_id}: {str(e)}")
 
@@ -74,12 +74,12 @@ class TicketService:
             
             target_ticket = await self.ticket_repo.get_by_id(target_ticket_id= ticket_id)
 
-            if target_ticket == None:
+            if target_ticket is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Ticket Not found."
                 )
-            
+
             return target_ticket
             
 
