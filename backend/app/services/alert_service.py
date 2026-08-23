@@ -1,30 +1,29 @@
-from app.models.alert import Alert
-from app.models.ticket_analysis import TicketAnalysis
+from app.repositories.alert_repository import AlertRepository
+from app.websocket.manager import ws_manager
+from app.schemas.alert import AlertCreate
 
 
 class AlertService:
+    def __init__(self, alert_repo: AlertRepository):
+        self.alert_repo = alert_repo
 
-    def generate_alert(self, analysis: TicketAnalysis):
+    async def create_and_broadcast(self, alert_in: AlertCreate) -> dict:
+        #TODO: ذخیره در دیتابیس - ارسال اعلان به ادمین ها
 
-        urgent = analysis.urgency in ["high", "critical"]
+        saved_alert = await self.alert_repo.create_alert(alert_in)
 
-        incident_candidate = analysis.urgency == "critical"
+        #TODO: بررسی بشه آیا نیاز به قالب بندی فراتر داریم یا نه
+        # ws_payload = {
+        #     "type": alert_in.type,
+        #     "data": saved_alert
+        # }
 
-        sla_risk = analysis.urgency == "critical"
+        await ws_manager.broadcast_alert(saved_alert)
 
-        message = "System operating normally"
+        return saved_alert
 
-        if urgent:
-            message = "Urgent ticket detected"
+    async def fetch_alerts(self, unread_only: bool = False) -> list:
+        return await self.alert_repo.get_all_alerts(unread_only)
 
-        if incident_candidate:
-            message = "Critical incident candidate detected"
-
-        alert = Alert(
-            urgent_ticket=urgent,
-            incident_candidate=incident_candidate,
-            sla_risk=sla_risk,
-            message=message
-        )
-
-        return alert
+    async def mark_alert_read(self, alert_id: int) -> dict | None:
+        return await self.alert_repo.mark_as_read(alert_id)
