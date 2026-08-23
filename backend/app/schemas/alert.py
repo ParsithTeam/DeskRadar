@@ -15,7 +15,7 @@ class AlertType(str, Enum):
 
 
 class AlertCreate(BaseModel):
-    type: str
+    type: AlertType
     message: str
     severity: AlertSeverity
     ticket_id: int | None = None
