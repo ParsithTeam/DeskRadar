@@ -1,13 +1,24 @@
 "use client";
 
+import { useAppData } from "@/lib/app-context";
+import { categoryLabels } from "@/lib/mock-data";
+import type { TicketCategory } from "@/types";
+
 export default function CategoryChart() {
-  const chartData = [
-    { category: "اتصال و مشکلات VPN", count: 14, percentage: "85%", color: "bg-blue-500" },
-    { category: "سرویس ایمیل و Outlook", count: 8, percentage: "55%", color: "bg-amber-500" },
-    { category: "شبکه و اینترنت داخلی", count: 6, percentage: "40%", color: "bg-rose-500" },
-    { category: "پرینتر و سخت‌افزار کارگاه", count: 4, percentage: "25%", color: "bg-slate-400" },
-    { category: "حساب کاربری و دسترسی‌ها", count: 2, percentage: "15%", color: "bg-emerald-500" },
+  const { tickets } = useAppData();
+  const categories: { key: TicketCategory; color: string }[] = [
+    { key: "vpn", color: "bg-blue-500" },
+    { key: "email", color: "bg-amber-500" },
+    { key: "network", color: "bg-rose-500" },
+    { key: "printer", color: "bg-slate-400" },
+    { key: "account", color: "bg-emerald-500" },
   ];
+  const chartData = categories.map((item) => ({
+    category: categoryLabels[item.key],
+    count: tickets.filter((ticket) => ticket.category === item.key).length,
+    color: item.color,
+  }));
+  const largest = Math.max(...chartData.map((item) => item.count), 1);
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200/60 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex flex-col justify-between h-full">
@@ -26,7 +37,7 @@ export default function CategoryChart() {
             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full ${item.color} transition-all duration-500`}
-                style={{ width: item.percentage }}
+                style={{ width: `${Math.max((item.count / largest) * 100, 4)}%` }}
               />
             </div>
           </div>
