@@ -13,7 +13,7 @@ class AlertType(str, Enum):
     URGENT_TICKET = "urgent_ticket"
     SAL_RISK = "sal_risk"
 
-
+#specifying id
 class AlertCreate(BaseModel):
     type: AlertType
     message: str
@@ -23,7 +23,7 @@ class AlertCreate(BaseModel):
 
 
 class AlertResponse(AlertCreate):
-    id: int
+    alert_id: int
     is_read: bool = False  # برای نمایش در صفحه نوتیفیکیشن‌ها
     created_at: datetime
 
