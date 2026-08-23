@@ -1,5 +1,6 @@
 import asyncio
 from fastapi import WebSocket, WebSocketException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 import json
 
@@ -38,13 +39,18 @@ class ConnectionManager:
             print(f"Connection closed. Active: {len(self.active_connections)}")
 
     async def broadcast_alert(self, alert_data: dict):
-        message = json.dumps(alert_data, ensure_ascii=False)
+        message = json.dumps(jsonable_encoder(alert_data), ensure_ascii=False)
+        disconnected = []
         # برای ایمنی بیشتر، اگر ارسال به یک کلاینت خطا داد، بقیه کلاینت‌ها مختل نشوند
-        for connection in list(self.active_connections):
+        for connection in self.active_connections:
             try:
                 await connection.send_text(message)
             except Exception:
-                self.disconnect(connection)
+                print(f"Error while sending message to {connection}")
+                disconnected.append(connection)
+
+        for con in disconnected:
+            self.disconnect(con)
 
 
 ws_manager = ConnectionManager()
