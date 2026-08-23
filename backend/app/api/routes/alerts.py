@@ -1,30 +1,42 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, HTTPException
 from app.websocket.manager import ws_manager
-from app.schemas.alert import AlertCreate
+from app.schemas.alert import AlertCreate, AlertResponse
+from app.services.alert_service import AlertService
+from app.repositories.alert_repository import AlertRepository
+from typing import List
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
+# ایجاد سرویس (در آینده با Depends انجام می‌شود)
+alert_service = AlertService(alert_repo=AlertRepository())
 
-# ۱. روت وب‌سوکت (فرانت‌اند به این مسیر گوش می‌دهد)
 @router.websocket("/ws")
 async def websocket_alert(websocket: WebSocket):
     await ws_manager.connect(websocket)
     try:
         while True:
-            # منتظر ماندن برای تشخیص قطع اتصال از سمت مرورگر
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
-        print("websocket disconnected.")
 
+# روت استاندارد برای دریافت تاریخچه هشدارها
+@router.get("/", response_model=List[AlertResponse])
+async def get_alerts(unread_only: bool = False):
+    return await alert_service.fetch_alerts(unread_only=unread_only)
 
-# ۲. روت تستی برای شبیه‌سازی (از Swagger صدا زده می‌شود)
-@router.post("/test-trigger", status_code=status.HTTP_200_OK)
+# روت استاندارد برای خوانده‌شده کردن هشدار
+@router.post("/{alert_id}/mark-read", response_model=AlertResponse)
+async def mark_alert_as_read(alert_id: int):
+    try:
+        alert = await alert_service.mark_alert_read(alert_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{str(e)}")
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return alert
+
+# روت تستی برای تریگر کردن هشدار
+@router.post("/test-trigger", response_model=AlertResponse, status_code=status.HTTP_201_CREATED)
 async def trigger_test_alert(alert_in: AlertCreate):
-    """
-    این روت صرفاً برای تست ماژولار است.
-    در سیستم نهایی، این منطق داخل AlertService و پس از تشخیص AI صدا زده می‌شود.
-    """
-    # تبدیل داده‌های Pydantic به دیکشنری و ارسال به تمام کلاینت‌های متصل
-    await ws_manager.broadcast_alert(alert_in.model_dump())
-    return {"status": "success", "detail": "Alert broadcasted to all connected clients."}
+    # حالا به جای پخش مستقیم، سرویس را صدا می‌زنیم تا هم ذخیره کند و هم پخش
+    return await alert_service.create_and_broadcast(alert_in)
