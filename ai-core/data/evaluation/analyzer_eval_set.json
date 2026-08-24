@@ -1,0 +1,450 @@
+[
+  {
+    "ticket_id": "EVAL-VPN-01",
+    "text": "وی پی ان وصل نمی‌شود و خطای احراز هویت می‌دهد",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_authentication_error",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-VPN-02",
+    "text": "برای همکار جدید درخواست دسترسی VPN دارم",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-VPN-03",
+    "text": "اتصال vpn مدام قطع می‌شود و کارم عقب افتاده",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_connection_issue",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-VPN-04",
+    "text": "AnyConnect بعد از update اجرا نمی‌شود",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_client_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-VPN-05",
+    "text": "کد MFA برای ورود به وی پی ان تأیید نمی‌شود",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_authentication_error",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-VPN-06",
+    "text": "لطفاً اکانت remote access من را فعال کنید",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-VPN-07",
+    "text": "نیم ساعت دیگر جلسه دارم و vpn connection failed است",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_connection_issue",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-VPN-08",
+    "text": "نسخه FortiClient قدیمی است و باید بروزرسانی شود",
+    "expected_category": "vpn",
+    "expected_intent": "vpn_client_issue",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-01",
+    "text": "صندوق ایمیل پر شده و پیام جدید دریافت نمی‌کنم",
+    "expected_category": "email",
+    "expected_intent": "email_quota_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-02",
+    "text": "رمز ایمیل را فراموش کرده‌ام و وارد نمی‌شوم",
+    "expected_category": "email",
+    "expected_intent": "email_access_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-03",
+    "text": "ایمیل ارسال می‌شود ولی به گیرنده نمی‌رسد",
+    "expected_category": "email",
+    "expected_intent": "email_send_receive_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-04",
+    "text": "Outlook sync نمی‌شود و پروفایل خطا دارد",
+    "expected_category": "email",
+    "expected_intent": "email_outlook_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-05",
+    "text": "برای افزایش ظرفیت mailbox درخواست دارم",
+    "expected_category": "email",
+    "expected_intent": "email_quota_issue",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-06",
+    "text": "حساب ایمیل قفل شده و جلسه فوری دارم",
+    "expected_category": "email",
+    "expected_intent": "email_access_issue",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-07",
+    "text": "از صبح هیچ ایمیلی دریافت نکرده‌ام",
+    "expected_category": "email",
+    "expected_intent": "email_send_receive_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-EMAIL-08",
+    "text": "فایل OST در Outlook باز نمی‌شود",
+    "expected_category": "email",
+    "expected_intent": "email_outlook_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-01",
+    "text": "کل شرکت اینترنت ندارد و همه کاربران درگیرند",
+    "expected_category": "network",
+    "expected_intent": "network_drop",
+    "expected_urgency": "critical"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-02",
+    "text": "سرعت اینترنت طبقه دوم خیلی کند شده",
+    "expected_category": "network",
+    "expected_intent": "network_speed",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-03",
+    "text": "وای فای لپ تاپ من شبکه را پیدا نمی‌کند",
+    "expected_category": "network",
+    "expected_intent": "network_wifi_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-04",
+    "text": "کابل LAN وصل است ولی IP دریافت نمی‌شود",
+    "expected_category": "network",
+    "expected_intent": "network_lan_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-05",
+    "text": "اینترنت سیستم من قطع شده و دسترسی ندارم",
+    "expected_category": "network",
+    "expected_intent": "network_drop",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-06",
+    "text": "ping زیاد و latency شبکه بالا است",
+    "expected_category": "network",
+    "expected_intent": "network_speed",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-07",
+    "text": "SSID شرکت نمایش داده نمی‌شود",
+    "expected_category": "network",
+    "expected_intent": "network_wifi_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-NETWORK-08",
+    "text": "پورت شبکه اتاق مالی کار نمی‌کند",
+    "expected_category": "network",
+    "expected_intent": "network_lan_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-01",
+    "text": "پرینتر خطای paper jam می‌دهد",
+    "expected_category": "printer",
+    "expected_intent": "printer_error",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-02",
+    "text": "فایل‌ها در صف چاپ گیر کرده‌اند",
+    "expected_category": "printer",
+    "expected_intent": "print_queue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-03",
+    "text": "تونر پرینتر تمام شده و چاپ کم‌رنگ است",
+    "expected_category": "printer",
+    "expected_intent": "printer_supply_issue",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-04",
+    "text": "درخواست نصب پرینتر جدید روی سیستم دارم",
+    "expected_category": "printer",
+    "expected_intent": "printer_setup_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-05",
+    "text": "پرینتر واحد مالی offline شده",
+    "expected_category": "printer",
+    "expected_intent": "printer_error",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-06",
+    "text": "job چاپ pending مانده و حذف نمی‌شود",
+    "expected_category": "printer",
+    "expected_intent": "print_queue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-07",
+    "text": "کارتریج دستگاه نیاز به تعویض دارد",
+    "expected_category": "printer",
+    "expected_intent": "printer_supply_issue",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PRINTER-08",
+    "text": "لطفاً driver چاپگر را نصب کنید",
+    "expected_category": "printer",
+    "expected_intent": "printer_setup_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-01",
+    "text": "رمز حساب را فراموش کردم و اکانت قفل شده",
+    "expected_category": "account",
+    "expected_intent": "account_lock",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-02",
+    "text": "برای نیروی جدید حساب کاربری بسازید",
+    "expected_category": "account",
+    "expected_intent": "account_creation",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-03",
+    "text": "به پورتال سازمانی login نمی‌شوم",
+    "expected_category": "account",
+    "expected_intent": "account_access_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-04",
+    "text": "لطفاً حساب کاربر قبلی را غیرفعال کنید",
+    "expected_category": "account",
+    "expected_intent": "account_deactivation",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-05",
+    "text": "password منقضی شده و امکان ورود ندارم",
+    "expected_category": "account",
+    "expected_intent": "account_lock",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-06",
+    "text": "درخواست create account برای همکار فروش دارم",
+    "expected_category": "account",
+    "expected_intent": "account_creation",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-07",
+    "text": "خطای access denied هنگام ورود به سامانه دارم",
+    "expected_category": "account",
+    "expected_intent": "account_access_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-ACCOUNT-08",
+    "text": "اکانت همکار جداشده باید disable شود",
+    "expected_category": "account",
+    "expected_intent": "account_deactivation",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-01",
+    "text": "لپ تاپ روشن نمی‌شود و چراغ پاور خاموش است",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_failure",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-02",
+    "text": "برای همکار جدید مانیتور درخواست دارم",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-03",
+    "text": "موس و کیبورد روی هیچ پورتی کار نمی‌کنند",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_peripheral_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-04",
+    "text": "مانیتور تصویر ندارد ولی سیستم روشن است",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_display_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-05",
+    "text": "هارد دستگاه خراب شده و سیستم بالا نمی‌آید",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_failure",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-06",
+    "text": "یک هدست برای تماس‌های واحد فروش لازم دارم",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-07",
+    "text": "کیبورد چند کلید را ثبت نمی‌کند",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_peripheral_issue",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-HARDWARE-08",
+    "text": "تصویر مانیتور پرش دارد و کابل سالم است",
+    "expected_category": "hardware",
+    "expected_intent": "hardware_display_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-01",
+    "text": "لطفاً نرم افزار حسابداری را نصب کنید",
+    "expected_category": "software",
+    "expected_intent": "software_install",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-02",
+    "text": "برنامه هنگام اجرا crash می‌کند و error می‌دهد",
+    "expected_category": "software",
+    "expected_intent": "software_error",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-03",
+    "text": "لایسنس نرم افزار منقضی شده است",
+    "expected_category": "software",
+    "expected_intent": "software_license_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-04",
+    "text": "برای دسترسی به برنامه CRM درخواست دارم",
+    "expected_category": "software",
+    "expected_intent": "software_access_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-05",
+    "text": "نسخه جدید نرم‌افزار باید update شود",
+    "expected_category": "software",
+    "expected_intent": "software_install",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-06",
+    "text": "اپلیکیشن باز نمی‌شود و کارم متوقف شده",
+    "expected_category": "software",
+    "expected_intent": "software_error",
+    "expected_urgency": "high"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-07",
+    "text": "activation برنامه ناموفق است",
+    "expected_category": "software",
+    "expected_intent": "software_license_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-SOFTWARE-08",
+    "text": "مجوز استفاده از نرم افزار گزارش‌گیری لازم دارم",
+    "expected_category": "software",
+    "expected_intent": "software_access_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-01",
+    "text": "برای پوشه اشتراکی خطای access denied دارم",
+    "expected_category": "permission",
+    "expected_intent": "permission_denied",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-02",
+    "text": "درخواست دسترسی خواندن به فایل مالی دارم",
+    "expected_category": "permission",
+    "expected_intent": "permission_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-03",
+    "text": "مسیر shared folder باز نمی‌شود",
+    "expected_category": "permission",
+    "expected_intent": "shared_folder_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-04",
+    "text": "دسترسی کاربر قبلی به پوشه باید حذف شود",
+    "expected_category": "permission",
+    "expected_intent": "permission_remove_access",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-05",
+    "text": "مجوز ورود به فولدر پروژه را ندارم",
+    "expected_category": "permission",
+    "expected_intent": "permission_denied",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-06",
+    "text": "لطفاً permission نوشتن روی فایل را اضافه کنید",
+    "expected_category": "permission",
+    "expected_intent": "permission_request",
+    "expected_urgency": "low"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-07",
+    "text": "فایل روی شبکه پیدا نمی‌شود و پوشه قطع است",
+    "expected_category": "permission",
+    "expected_intent": "shared_folder_issue",
+    "expected_urgency": "medium"
+  },
+  {
+    "ticket_id": "EVAL-PERMISSION-08",
+    "text": "درخواست remove access کاربر مهمان را دارم",
+    "expected_category": "permission",
+    "expected_intent": "permission_remove_access",
+    "expected_urgency": "low"
+  }
+]

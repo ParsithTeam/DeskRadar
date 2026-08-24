@@ -1,1 +1,1 @@
-# empty __init__.py for app package
+"""DeskRadar AI Core application package."""
