@@ -1,5 +1,7 @@
 "use client";
 
+import { Inbox } from "lucide-react";
+
 export default function LoadingSkeleton() {
   return (
     <div className="space-y-8 animate-pulse">
@@ -21,5 +23,37 @@ export default function LoadingSkeleton() {
         <div className="bg-white p-6 rounded-xl border border-slate-100 h-80"></div>
       </div>
     </div>
+  );
+}
+
+export function EmptyState({
+  title = "موردی برای نمایش وجود ندارد",
+  description = "با تغییر فیلترها یا ثبت داده جدید دوباره بررسی کنید.",
+  action,
+}: {
+  title?: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="py-16 px-6 flex flex-col items-center text-center">
+      <div className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 mb-4">
+        <Inbox className="w-5 h-5" />
+      </div>
+      <p className="text-sm font-bold text-slate-800">{title}</p>
+      <p className="text-xs text-slate-400 mt-1.5 max-w-sm leading-6">
+        {description}
+      </p>
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
+}
+
+export function AccessDenied() {
+  return (
+    <EmptyState
+      title="دسترسی به این بخش محدود است"
+      description="این صفحه فقط برای نقش تعیین‌شده در سامانه قابل مشاهده است."
+    />
   );
 }

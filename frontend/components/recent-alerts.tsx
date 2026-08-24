@@ -1,13 +1,22 @@
 "use client";
 
+import Link from "next/link";
+import { useAppData } from "@/lib/app-context";
+
 export default function RecentAlerts() {
-  const alerts = [
-    { id: 1, type: "incident", msg: "تشخیص رخداد احتمالی در لایه احراز هویت VPN", time: "۵ دقیقه پیش", level: "بحرانی", color: "text-rose-600 bg-rose-50" },
-    { id: 2, type: "sla", msg: "ریسک تاخیر SLA برای تیکت شماره #۱۰۴ سازمان", time: "۱۴ دقیقه پیش", level: "بالا", color: "text-amber-600 bg-amber-50" },
-    { id: 3, type: "ticket", msg: "تیکت جدید با نارضایتی بالا از واحد مالی دریافت شد", time: "۳۲ دقیقه پیش", level: "بالا", color: "text-amber-600 bg-amber-50" },
-    { id: 4, type: "incident", msg: "گزارش قطعی مکرر پرینتر آفلاین طبقه دوم کارگاه", time: "۱ ساعت پیش", level: "متوسط", color: "text-blue-600 bg-blue-50" },
-    { id: 5, type: "system", msg: "بار پردازشی ماژول AI Analyzer به ۸۲٪ رسید", time: "۲ ساعت پیش", level: "کم اهمیت", color: "text-slate-500 bg-slate-100" },
-  ];
+  const { alerts } = useAppData();
+  const colorMap = {
+    critical: "text-rose-600 bg-rose-50",
+    high: "text-amber-600 bg-amber-50",
+    medium: "text-blue-600 bg-blue-50",
+    low: "text-slate-500 bg-slate-100",
+  };
+  const labelMap = {
+    critical: "بحرانی",
+    high: "بالا",
+    medium: "متوسط",
+    low: "اطلاع",
+  };
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200/60 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex flex-col h-full">
@@ -17,16 +26,26 @@ export default function RecentAlerts() {
       </div>
 
       <div className="flex-1 divide-y divide-slate-100 overflow-hidden">
-        {alerts.map((alert) => (
-          <div key={alert.id} className="py-3 flex items-center justify-between gap-3 text-xs last:pb-0 first:pt-0">
+        {alerts.slice(0, 5).map((alert) => (
+          <Link
+            href={alert.href || "/alerts"}
+            key={alert.id}
+            className="py-3 flex items-center justify-between gap-3 text-xs last:pb-0 first:pt-0 group"
+          >
             <div className="space-y-1 min-w-0 flex-1">
-              <p className="text-slate-700 font-medium truncate leading-relaxed">{alert.msg}</p>
-              <span className="text-[10px] text-slate-400 block">{alert.time}</span>
+              <p className="text-slate-700 font-medium truncate leading-relaxed group-hover:text-blue-600 transition-colors">
+                {alert.message}
+              </p>
+              <span className="text-[10px] text-slate-400 block">
+                {alert.createdAt}
+              </span>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${alert.color}`}>
-              {alert.level}
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${colorMap[alert.severity]}`}
+            >
+              {labelMap[alert.severity]}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

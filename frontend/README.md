@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ServiceDesk Radar - Frontend
 
-## Getting Started
+داشبورد فارسی و RTL مدیریت تیکت‌های IT با دو نقش کاربر و ادمین، تحلیل AI،
+رادار رخدادها، پایگاه دانش و جریان ارجاع به کارشناس انسانی.
 
-First, run the development server:
+## اجرا
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+برای کنترل کیفیت:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## حساب‌های نسخه نمایشی
 
-## Learn More
+| نقش | ایمیل | رمز عبور |
+| --- | --- | --- |
+| ادمین | `admin@deskino.ir` | `admin123` |
+| کاربر | `user@deskino.ir` | `user123` |
 
-To learn more about Next.js, take a look at the following resources:
+در صفحه ورود دکمه ورود سریع برای هر دو نقش نیز وجود دارد. ثبت‌نام‌های جدید
+همیشه با نقش کاربر عادی ساخته می‌شوند.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## جریان‌های پیاده‌سازی‌شده
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- داشبورد و ناوبری نقش‌محور
+- ورود و ثبت‌نام ساده نسخه نمایشی
+- ثبت تیکت، تحلیل خودکار Mock و مشاهده پاسخ پیشنهادی
+- ارجاع پاسخ ناموفق AI به ادمین و گفتگوی دوطرفه
+- صندوق مرکزی تیکت‌ها با جستجو، فیلتر، صفحه‌بندی و ورود CSV
+- جزئیات تحلیل، دلایل، پاسخ قابل کپی، مقاله مرتبط و بازخورد اپراتور
+- Incident Radar با تأیید، رفع و خوشه تیکت‌های مشابه
+- پایگاه دانش با جستجو، فیلتر، جزئیات RTL و فرم ساخت مقاله
+- هشدار زنده، WebSocket و Polling fallback، خوانده/نخوانده
+- حالت‌های Loading، Empty و Access Denied
 
-## Deploy on Vercel
+## لایه داده
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+نسخه فعلی فقط Frontend است و برای دمو از یک data client مرکزی و
+`localStorage` استفاده می‌کند. صفحه‌ها به داده Mock پراکنده وابسته نیستند؛
+برای اتصال بک‌اند کافی است پیاده‌سازی `lib/api-client.ts` با endpointهای واقعی
+جایگزین شود.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+متغیرهای قابل تنظیم در `.env.example` قرار دارند.
