@@ -9,3 +9,4 @@ __pycache__/
 ai-core/.model_cache/
 ai-core/data/.cache/
 data/
+.model_cache
