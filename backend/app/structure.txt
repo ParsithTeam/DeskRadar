@@ -1,0 +1,83 @@
+Folder PATH listing for volume OS
+Volume serial number is 00000019 06C7:1D14
+C:.
+¦   main.py
+¦   requirements.txt
+¦   structure.txt
+¦   
++---.idea
+¦   ¦   misc.xml
+¦   ¦   vcs.xml
+¦   ¦   workspace.xml
+¦   ¦   
+¦   +---inspectionProfiles
+¦           profiles_settings.xml
+¦           
++---api
+¦   +---routes
+¦           alerts.py
+¦           feedback.py
+¦           incidents.py
+¦           knowledge_base.py
+¦           tickets.py
+¦           
++---clients
+¦       ai_client.py
+¦       
++---core
+¦       config.py
+¦       database.py
+¦       dependencies.py
+¦       
++---models
+¦   ¦   alert.py
+¦   ¦   feedback.py
+¦   ¦   incident.py
+¦   ¦   knowledge_article.py
+¦   ¦   ticket.py
+¦   ¦   ticket_analysis.py
+¦   ¦   
+¦   +---__pycache__
+¦           alert.cpython-313.pyc
+¦           feedback.cpython-313.pyc
+¦           incident.cpython-313.pyc
+¦           ticket.cpython-313.pyc
+¦           ticket_analysis.cpython-313.pyc
+¦           
++---repositories
+¦       alert_repository.py
+¦       analysis_repository.py
+¦       incident_repository.py
+¦       ticket_repository.py
+¦       
++---schemas
+¦   ¦   alert.py
+¦   ¦   analysis.py
+¦   ¦   feedback.py
+¦   ¦   incident.py
+¦   ¦   ticket.py
+¦   ¦   
+¦   +---__pycache__
+¦           analysis.cpython-313.pyc
+¦           ticket.cpython-313.pyc
+¦           
++---services
+¦   ¦   alert_service.py
+¦   ¦   analysis_service.py
+¦   ¦   feedback_service.py
+¦   ¦   import_service.py
+¦   ¦   incident_service.py
+¦   ¦   ticket_service.py
+¦   ¦   
+¦   +---__pycache__
+¦           alert_service.cpython-313.pyc
+¦           analysis_service.cpython-313.pyc
+¦           incident_service.cpython-313.pyc
+¦           ticket_service.cpython-313.pyc
+¦           
++---websocket
+¦       manager.py
+¦       
++---__pycache__
+        main.cpython-313.pyc
+        
