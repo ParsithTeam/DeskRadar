@@ -6,8 +6,10 @@ portions of Core-AI API (§10) and seed/KB data (§11). Everything else in the
 Taskbook (Frontend §5, Backend §6, Database §7, Analyzer AI §8, DevOps §12, QA §13)
 is **out of scope** and owned by other team members.
 
-Status: **all 21 roadmap steps implemented and self-validated**, with the reviewer's
-Critical/High fixes folded in.
+Status: **the AI Infrastructure scope is implemented and self-validated**. The
+default Python-cosine path is verified, Qdrant remains intentionally disabled,
+all 22 automated tests pass, and the real-model report records a `0.5914`
+separation gap and `0.9333` retrieval category accuracy.
 
 ---
 
@@ -82,24 +84,20 @@ Critical/High fixes folded in.
 
 ---
 
-## 2. Remaining — IN SCOPE (small follow-ups)
+## 2. Current status and deferred follow-ups
 
-1. **`requirements.txt`** — ✅ now added.
-2. **Test suite** — ✅ cache persistence, Persian VPN/printer, error responses, config validation, and Rule 6 are covered by `pytest`.
-3. **Real-model evaluation** — ✅ `docs/evaluation.md` was regenerated; separation gap is `0.5914` (> `0.15`) and retrieval category accuracy is `0.9333`.
-4. **Qdrant parity** — deferred while `qdrant.enabled=false`; required before Qdrant is enabled.
-5. **Place files at repo paths** — the deliverables here are flat-named; map them to the tree in §4 below.
+1. **Dependencies and file placement** — ✅ complete at the repository paths listed in §4.
+2. **Test suite** — ✅ 22 tests cover cache persistence, Persian VPN/printer retrieval, incident deduplication, controlled errors, config validation, and Rule 6.
+3. **Real-model evaluation** — ✅ `docs/evaluation.md` records a separation gap of `0.5914` (> `0.15`) and retrieval category accuracy of `0.9333`.
+4. **Qdrant parity** — intentionally deferred while `qdrant.enabled=false`; verify it before enabling Qdrant in deployment.
+5. **Target-environment checks** — clean-environment installation and latency on the final VPS remain deployment checks.
 
-## 3. Remaining — OUT OF SCOPE (other owners, for full-picture awareness)
+## 3. External integration dependencies (outside this component)
 
-- **§5 Frontend** (Next.js dashboard) — entirely remaining.
-- **§6 Backend** (FastAPI: routes, services, repositories, AIClient, WebSocket, CSV import) — entirely remaining.
-- **§7 Database** (PostgreSQL models, migrations, enums, indexes) — remaining.
-- **§8 Analyzer AI** (Persian text analysis sub-module) — remaining (separate AI component).
-- **§10 Core-AI combination** — the endpoint that merges Analyzer + Infrastructure into the unified `TicketAnalysisResponse`. Our `main.py` provides the guarded hook; the merge layer + Analyzer are remaining.
-- **§11 `tickets_sample.csv`** (100-ticket CSV for Backend import) — QA/Data scope (distinct from our `old_tickets.json`).
-- **§12 DevOps** — Dockerfiles, `docker-compose.yml` (incl. Qdrant/Redis services), Makefile, per-service `.env`.
-- **§13 QA** — cross-layer tests, demo scenario, manual checklists.
+- **Backend integration** must consume the documented API contract and persist/use similar-ticket, article, and incident fields.
+- **Analyzer/Core-AI composition** must combine `analysis`, `intelligence`, and `meta`, and use the related article when producing a suggested reply.
+- **Frontend, Database, DevOps, and cross-layer QA** are owned outside this component and were not assessed by this close-out.
+- **Qdrant deployment** is optional and intentionally deferred; the verified default path is local Python cosine search.
 
 ---
 
@@ -129,31 +127,32 @@ Critical/High fixes folded in.
 | 20 | `seed_embeddings.py` | `ai-core/scripts/seed_embeddings.py` |
 | 21 | `evaluate_infrastructure.py` | `ai-core/scripts/evaluate_infrastructure.py` |
 | + | `requirements.txt` | `ai-core/requirements.txt` |
-| + | `README.md` | `ai-core/README.md` |
+| + | `README.md` | `ai-core/app/infrastructure/README.md` |
+| + | `backend_integration_contract.md` | `ai-core/docs/backend_integration_contract.md` |
 | (gen) | `docs/evaluation.md` | written by script |
 
-> Reminder: `app/infrastructure/` also needs an Analyzer-free sibling — there is no
-> `app/__init__.py` in this deliverable set; add an empty one so `app` is a package.
+> `ai-core/app/__init__.py` is present, so `app` is already a Python package.
 
 ---
 
 ## 5. Commit checklist
 
-- [ ] Place all files at the repo paths above; add empty `ai-core/app/__init__.py`.
+- [x] Place all files at the repo paths above; `ai-core/app/__init__.py` exists.
 - [ ] `pip install -r requirements.txt` succeeds on a clean env.
-- [ ] `python scripts/seed_embeddings.py` builds `data/.cache/article_embeddings.json`.
-- [ ] `uvicorn app.main:app` starts; `GET /health` returns `ok`; `/docs` renders.
-- [ ] `POST /analyze-ticket` with a VPN ticket returns VPN similars + VPN article + a high incident on the seeded VPN cluster.
-- [ ] `python scripts/evaluate_infrastructure.py` writes `docs/evaluation.md`.
-- [ ] `separation_gap > 0.15` in the report (else revise dissimilar pairs).
-- [ ] Add CI grep guard for Rule 6.
-- [ ] `.gitignore` covers `.model_cache/` and `data/.cache/`.
+- [x] `python scripts/seed_embeddings.py` builds persistent article and ticket caches under `data/.cache/`.
+- [x] `uvicorn app.main:app` starts; `GET /health` and `/docs` were manually verified.
+- [x] `POST /analyze-ticket` returns VPN similars, a VPN article, a high incident, and detects an existing duplicate incident.
+- [x] `python scripts/evaluate_infrastructure.py` writes `docs/evaluation.md`.
+- [x] `separation_gap > 0.15` (`0.5914`) in the real-model report.
+- [x] Rule 6 has an automated guard test.
+- [x] `.gitignore` covers `.model_cache/` and `data/.cache/`.
+- [x] Automated suite passes: 22 tests.
+- [ ] Confirm `latency_ms` is acceptable on the target VPS.
 
 ---
 
-## 6. Open verification items (need the real model / runtime)
+## 6. Open deployment verification items
 
-1. **Separation gap** — ✅ real-model result is `0.5914` (> `0.15`).
-2. **Cache-on-second-startup** — ✅ covered by deterministic ticket/article cache tests; recheck after deployment configuration changes.
-3. **Qdrant parity** (only if enabling Qdrant) — deferred while Qdrant remains disabled.
-4. **Latency** — confirm per-request `latency_ms` is acceptable on the target VPS.
+1. **Clean environment** — install `requirements.txt` in a fresh environment and run the full test suite.
+2. **Latency** — confirm per-request `latency_ms` is acceptable on the target VPS.
+3. **Qdrant parity** — only required if the team later changes `qdrant.enabled` to `true`.

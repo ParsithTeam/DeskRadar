@@ -4,8 +4,8 @@
 
 **پروژه:** ServiceDesk Radar — داشبورد هوشمند مدیریت تیکت‌های پشتیبانی IT با هسته‌ی AI فارسی‌محور
 **شاخه (Branch):** `ai-infrastructure`
-**دامنه‌ی کاری این گزارش:** فقط `ai-core/app/infrastructure/`
-**وضعیت:** هر ۲۱ گام نقشه‌ی راه پیاده‌سازی شد، همه‌ی ایرادهای بازبینی (Review) برطرف شد، ارزیابی با **مدل واقعی** اجرا و گزارشش commit شد، و **۱۲ تست واحد/یکپارچه** با موفقیت پاس شدند.
+**دامنه‌ی کاری این گزارش:** `ai-core/app/infrastructure/` به‌همراه config، data، docs، scripts، tests و ورودی FastAPI
+**وضعیت:** حالت پیش‌فرض Python-cosine با Qdrant خاموش تکمیل و تست شده است؛ ارزیابی با **مدل واقعی** ثبت شده و **۲۲ تست واحد/یکپارچه** پاس می‌شوند.
 
 ---
 
@@ -15,7 +15,7 @@
 
 - **پنج تیکت مشابه برتر** همراه با امتیاز شباهت و سطح تطبیق (`similar` یا `very_similar`).
 - **مرتبط‌ترین مقاله‌ی راهنما** (یا `null` اگر امتیاز پایین‌تر از حد آستانه باشد).
-- **تشخیص رخداد احتمالی (Incident)**: اینکه آیا چند تیکت مشابه در یک دسته، نشانه‌ی یک مشکل گسترده هستند؛ به‌همراه شدت (`medium`/`high`)، عنوان و دلیل فارسی، شناسه‌ی تیکت‌های مرتبط، میانگین شباهت و پرچم `is_duplicate`.
+- **تشخیص رخداد احتمالی (Incident)**: اینکه آیا چند تیکت مشابه در یک دسته، نشانه‌ی یک مشکل گسترده هستند؛ به‌همراه شدت، عنوان و دلیل فارسی، شناسه‌های مرتبط، `is_duplicate` و `duplicate_incident_id`.
 - **اطلاعات همراه**: نسخه‌ی مدل embedding، زمان پردازش (ms)، و فیلد `error` که در موفقیت `null` است.
 
 این بخش **دسته‌بندی/فوریت/پاسخ تولید نمی‌کند**؛ آن وظیفه‌ی Analyzer AI است. این دو کاملاً مستقل‌اند و ترکیب خروجی‌ها در Backend انجام می‌شود.
@@ -65,6 +65,7 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 
 - **مدل embedding:** `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (پشتیبانی بومی از فارسی و متن ترکیبی فارسی/انگلیسی).
 - **ذخیره‌سازی بردار:** پیش‌فرض و همیشه‌دردسترس، شباهت کسینوسی خالص با Python است. **Qdrant اختیاری** و کاملاً ایزوله است.
+- **cache پایدار تیکت‌ها:** بردار هر تیکت با `ticket_id + text_hash + model_version` ذخیره می‌شود و پس از restart فقط در صورت تغییر متن یا مدل دوباره ساخته می‌شود.
 
 ---
 
@@ -72,9 +73,9 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 
 | گام | فایل | کار انجام‌شده |
 |---|---|---|
-| ۱ | `config/infrastructure_config.json` | تنها منبع آستانه‌ها (top_k، آستانه‌های شباهت، حداقل امتیاز مقاله، قوانین رخداد، تنظیمات Qdrant). |
-| ۲ | `.env.example` | متغیرهای محیطی اجرا (بدون هیچ آستانه و بدون secret واقعی). |
-| ۳ | `app/infrastructure/schemas.py` | همه‌ی مدل‌های Pydantic (ورودی، داخلی، خروجی، گزارش ارزیابی). |
+| ۱ | `config/infrastructure_config.json` | تنها منبع آستانه‌ها و مسیر cacheهای مقاله و تیکت؛ ساختار آن هنگام startup با Pydantic اعتبارسنجی می‌شود. |
+| ۲ | `.env.example` | متغیرهای محیطی اجرا؛ فایل `.env` خودکار خوانده می‌شود و process environment اولویت دارد. |
+| ۳ | `app/infrastructure/schemas.py` | مدل‌های ورودی/خروجی، `OpenIncidentRecord`، cacheها، health و config. |
 | ۴ | `data/knowledge_articles.json` | ۱۱ مقاله‌ی فارسی پوشش‌دهنده‌ی vpn، email، printer، network، account. |
 | ۵ | `data/old_tickets.json` | ۵۵ تیکت نمونه با خوشه‌ی VPN برای سناریوی رخداد و ترکیب وضعیت‌ها. |
 | ۶ | `data/evaluation_set.json` | ۶۰ تیکت برچسب‌خورده (۱۲ تیکت در هر دسته). |
@@ -85,7 +86,7 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 | ۱۴ | `similarity_search.py` | تابع `find_similar_tickets` با حذف self-match، فیلتر بسته/حذف‌شده، آستانه‌های config. |
 | ۱۵ | `knowledge_base.py` | بارگذاری مقاله، ساخت embedding با cache (بر اساس model_version و text_hash)، و `find_related_article`. |
 | ۱۶ | `incident_detector.py` | تابع `detect_incident_candidate` با شدت medium/high، عنوان و دلیل فارسی، dedup مبتنی بر اشتراک خوشه و `duplicate_incident_id`؛ برچسب فارسی برای ۷ دسته (شامل نرم‌افزار/سخت‌افزار). |
-| ۱۷ | `__init__.py` | هماهنگ‌کننده (Orchestrator) و API عمومی (سه تابع). |
+| ۱۷ | `__init__.py` | هماهنگ‌کننده، cache پایدار تیکت‌ها، بارگذاری `.env` و API عمومی. |
 | ۱۸ | `evaluation.py` | ارزیابی آفلاین: کیفیت شباهت، جاروی آستانه، و دقت دسته‌بندیِ retrieval (نه Analyzer). |
 | ۱۹ | `app/main.py` | اپ FastAPI: `/health` و `/analyze-ticket`. |
 | ۲۰ | `scripts/seed_embeddings.py` | ساخت cache مقاله‌ها. |
@@ -100,15 +101,15 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 تابع `run_infrastructure()` این مراحل ثابت را اجرا می‌کند:
 
 1. ساخت **متن استاندارد** از عنوان + توضیح (+ دسته‌ی اختیاری).
-2. تبدیل به **بردار** با مدل (مدل یک‌بار لود شده و بازاستفاده می‌شود).
+2. تبدیل به **بردار** با مدل؛ embedding تیکت‌های قبلی از cache پایدار بازاستفاده می‌شود.
 3. **یافتن تیکت‌های مشابه**: شباهت کسینوسی، حذف خودتطبیقی، فیلتر تیکت‌های `closed`/`deleted`، نگه‌داشتن موارد بالای آستانه‌ی شباهت، مرتب‌سازی و محدودسازی به `top_k`.
 4. **یافتن مقاله‌ی مرتبط** (نزدیک‌ترین مقاله ≥ حداقل امتیاز، در غیر این‌صورت `null`).
-5. **تشخیص رخداد**: در میان تیکت‌های مشابهِ هم‌دسته و بالای کف شباهت، اگر تعداد ≥ آستانه‌ی high باشد `high`، اگر در بازه‌ی medium باشد `medium`، وگرنه بدون رخداد.
+5. **تشخیص رخداد**: تعیین medium/high و بررسی dedup با اشتراک `matched_ticket_ids` در `open_incidents`؛ در حالت تکراری، `duplicate_incident_id` برمی‌گردد.
 6. **مونتاژ نتیجه**.
 
 هر مرحله ایزوله است؛ خطای یک مرحله نتایج مراحل قبل را از بین نمی‌برد و در فیلد `error` گزارش می‌شود.
 
-> **قرارداد مهم با Backend (معنای pool):** در حالت پیش‌فرض (Qdrant خاموش)، جست‌وجوی شباهت فقط روی آرایه‌ی `old_tickets` که در بدنه‌ی درخواست می‌آید انجام می‌شود — نه روی استخر startup. پس Backend باید در **هر** درخواست، مجموعه‌ی تیکت‌های قبلی مرتبط را بفرستد. `old_tickets` خالی یعنی `similar_tickets` خالی و بدون رخداد (که معتبر است). فیلد `tickets_in_pool` در `/health` اندازه‌ی استخر seed را نشان می‌دهد و فقط وقتی Qdrant روشن است معنا دارد.
+> **قرارداد مهم با Backend:** در حالت پیش‌فرض، جست‌وجو فقط روی `old_tickets` همان درخواست انجام می‌شود. Backend برای dedup نیز باید `open_incidents` شامل `incident_id`، category و `matched_ticket_ids` را بفرستد. قرارداد کامل در `docs/backend_integration_contract.md` است.
 
 ---
 
@@ -126,7 +127,7 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 | فاصله‌ی جداسازی (هدف > ۰.۱۵) | **۰.۵۹** ✅ |
 | نرخ قبولی (در آستانه‌ی ۰.۷۰) | ۰.۸۹ |
 
-**دقت دسته‌بندی:** کلی **۹۳٪** (۵۶ از ۶۰). به‌تفکیک: email/network/printer = ۱۰۰٪، vpn ≈ ۹۲٪، account = ۷۵٪.
+**دقت دسته‌بندی retrieval (نه Analyzer):** کلی **۹۳٪** (۵۶ از ۶۰). به‌تفکیک: email/network/printer = ۱۰۰٪، vpn ≈ ۹۲٪، account = ۷۵٪.
 
 **آستانه‌ی عملیاتی منتخب: `۰.۷۰`.** از میان مقادیر پیشنهادی Taskbook §9.8 ({۰.۷۰، ۰.۷۵، ۰.۷۸، ۰.۸۲})، مقدار ۰.۷۰ بالاترین نرخ قبولی (۰.۸۹) را دارد در حالی‌که فاصله‌ی جداسازی همچنان ۰.۵۹ (> ۰.۱۵) می‌ماند. اعداد کمتری که اسکریپت چاپ می‌کند (۰.۴۸ = میانهٔ امتیازها، ۰.۶۵ = argmax جارو) صرفاً heuristic بدون قید هستند؛ ما نقطه‌ی عملیاتی را روی یک مقدار مصرّح در Taskbook تثبیت کردیم تا precision حفظ شود.
 
@@ -162,7 +163,7 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 
 ## ۹) تست‌ها
 
-مجموعه‌ی تست در `tests/` شامل fixtureهای قطعی و **۱۲ تست** است که **همگی پاس شدند**:
+مجموعه‌ی تست در `tests/` شامل fixtureهای قطعی و **۲۲ تست** است که **همگی پاس شدند**:
 
 - `test_embedding_model.py` — فرمت `build_ticket_text`، خطای `ModelNotReadyError`، نگهبان `ENVIRONMENT=test`.
 - `test_similarity_search.py` — «فقط VPN در پنج نتیجه‌ی برتر»، حذف self-match، فیلتر بسته/حذف‌شده، آستانه.
@@ -178,20 +179,27 @@ evaluation.py — فقط آفلاین؛ از بقیه import می‌کند ول�
 
 ## ۱۰) نحوه‌ی اجرا
 
-```bash
-cd ai-core
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+```powershell
+Set-Location "C:\Users\Victus 16\DeskRadar\ai-core"
 
-# ۱) ساخت cache مقاله‌ها
-python scripts/seed_embeddings.py
+# نصب وابستگی‌ها و ساخت فایل محیط
+& "..\.venv\Scripts\python.exe" -m pip install -r requirements.txt
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
-# ۲) اجرای سرویس (Swagger در http://localhost:8001/docs)
-uvicorn app.main:app --host 0.0.0.0 --port 8001
+# ساخت cache مقاله‌ها
+& "..\.venv\Scripts\python.exe" scripts\seed_embeddings.py
 
-# ۳) اجرای ارزیابی (تولید docs/evaluation.md)
-python scripts/evaluate_infrastructure.py
+# اجرای سرویس؛ Swagger در http://127.0.0.1:8001/docs
+& "..\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 
-# اجرای تست‌ها
-pytest
+# ارزیابی واقعی و تولید docs/evaluation.md
+& "..\.venv\Scripts\python.exe" scripts\evaluate_infrastructure.py
+
+# اجرای تست‌ها در مسیر موقت برای ایزوله‌ماندن cache تست
+Push-Location C:\tmp
+& "C:\Users\Victus 16\DeskRadar\.venv\Scripts\python.exe" -m pytest `
+  "C:\Users\Victus 16\DeskRadar\ai-core\tests" -q -p no:cacheprovider
+Pop-Location
+```
+
+</div>

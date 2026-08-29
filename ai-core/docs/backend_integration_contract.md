@@ -50,6 +50,10 @@ send the incident's `matched_ticket_ids`.
 
 ## Response and persistence rules
 
+The following response is abridged to show the fields the Backend must persist;
+the live API also returns presentation fields such as `match_level`, `title`,
+`category`, and article `tags`.
+
 ```json
 {
   "similar_tickets": [{"ticket_id": 18, "similarity": 0.91}],
