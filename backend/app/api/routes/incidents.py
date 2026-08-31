@@ -1,18 +1,12 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.schemas.incident import IncidentResponse, IncidentStatus
-from app.services.incident_service import IncidentService
-from app.repositories.incident_repository import IncidentRepository
-from app.services.alert_service import AlertService
-from app.repositories.alert_repository import AlertRepository
+from app.api.routes.tickets import incident_serv as incident_service
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
 # (نکته: در نسخه نهایی و پس از اتصال دیتابیس، این موارد از طریق Depends و Dependency Injection در توابع تزریق می‌شوند)
-alert_repo = AlertRepository()
-alert_service = AlertService(alert_repo)
-incident_repo = IncidentRepository()
-incident_service = IncidentService(incident_repo, alert_service)
+
 
 # class MockAIPayload(BaseModel):
 #     ticket_id: int

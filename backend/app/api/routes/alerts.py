@@ -1,14 +1,12 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, HTTPException
 from app.websocket.manager import ws_manager
 from app.schemas.alert import AlertCreate, AlertResponse
-from app.services.alert_service import AlertService
-from app.repositories.alert_repository import AlertRepository
 from typing import List
 
-router = APIRouter(prefix="/alerts", tags=["Alerts"])
-
 # ایجاد سرویس (در آینده با Depends انجام می‌شود)
-alert_service = AlertService(alert_repo=AlertRepository())
+from app.api.routes.tickets import alert_serv as alert_service
+
+router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
 @router.websocket("/ws")
 async def websocket_alert(websocket: WebSocket):
