@@ -1,10 +1,30 @@
+from app.repositories.alert_repository import AlertRepository
+from app.repositories.incident_repository import IncidentRepository
+from app.repositories.ticket_repository import TicketRepository
 from app.schemas.ticket import TicketCreateRequest, TicketResponse
+from app.services.alert_service import AlertService
+from app.services.analysis_service import AnalysisService
+from app.services.incident_service import IncidentService
 from app.services.ticket_service import TicketService
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
-ticket_service = TicketService()
+#---------------وابستگی های اولیه برای صرفا تست------------
+alert_repo = AlertRepository()
+alert_serv = AlertService(alert_repo=alert_repo)
+
+incident_repo = IncidentRepository()
+incident_serv = IncidentService(incident_repo, alert_serv)
+
+ticket_repo = TicketRepository()
+analysis_serv = AnalysisService()
+
+ticket_service = TicketService(
+    ticket_repo=ticket_repo,
+    analysis_serv=analysis_serv,
+    incident_serv=incident_serv
+)
 
 @router.post("/", response_model=TicketResponse, status_code=status.HTTP_201_CREATED) #ریکوئست ایجاد تیکت جدید
 async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: BackgroundTasks):

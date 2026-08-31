@@ -5,7 +5,12 @@ from app.models.ticket_analysis import TicketAnalysis
 
 class AnalysisService:
 
-    async def analyze_ticket(self, ticket_id: int, title: str, description: str) -> dict:
+    async def analyze_ticket(self, ticket_id: int,
+                             title: str,
+                             description: str,
+                             category: str | None,
+                             old_tickets: list[dict],
+                             open_incident: list[dict]) -> dict:
 
         text = f"{title} {description}".lower()
 
@@ -47,7 +52,16 @@ class AnalysisService:
 
         result = {
             "ticket_id" : ticket_id,
-            "intelligence" : "Coming soon...",
+            "intelligence" : {
+                "incident": {
+                    "possible_incident": True,
+                    "severity": "high",
+                    "fa_title_incident": "رخداد تست با موفقیت تشخیص داده شد",
+                    "fa_reason_incident": "چندین تیکت هم‌پوشان شناسایی شد.",
+                    "matched_ticket_ids": [ticket_id],
+                    "is_duplicate": False
+                }
+            },
             "analysis" : analysis_respo
         }
             
