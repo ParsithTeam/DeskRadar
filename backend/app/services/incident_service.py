@@ -20,12 +20,12 @@ class IncidentService:
         دریافت تحلیل هوش مصنوعی، ساخت رخداد جدید یا به‌روزرسانی رخداد قبلی
         و ارسال خودکار هشدار زنده در موارد بحرانی.
         """
-        incident_info = intelligence_data.get("incident")
+        incident_info: dict | None =  intelligence_data.get("incident")
         if not incident_info or not incident_info.get("possible_incident"):
             return None
 
         is_duplicate = incident_info.get("is_duplicate", False)
-        duplicate_id = incident_info.get("duplicate_incident_id")
+        duplicate_id: int | None = incident_info.get("duplicate_incident_id")
         raw_severity = incident_info.get("severity", "medium").lower()
         send_alert = False
         incident_out: dict | None = None
