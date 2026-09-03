@@ -22,6 +22,13 @@ def test_build_ticket_text():
     text_empty = build_ticket_text(None, "   Some description   ")
     assert text_empty == "Some description"
 
+    # Test Persian character normalization (Arabic yeh/kaf)
+    text_fa = build_ticket_text("اتصال VPN برقرار نمي‌شود", "احراز هويت خطای كد دارد")
+    assert "هویت" in text_fa
+    assert "کد" in text_fa
+    assert "ي" not in text_fa
+    assert "ك" not in text_fa
+
 
 def test_model_not_ready_error(inject_mock_model):
     # Temporarily reset the model instance to test ModelNotReadyError
