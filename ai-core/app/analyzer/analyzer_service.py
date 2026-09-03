@@ -346,16 +346,3 @@ def analyze_batch(tickets: Iterable) -> list[dict]:
 
     return results
 
-
-def print_analysis(result: dict) -> None:
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-
-
-if __name__ == "__main__":
-    print_analysis(
-        analyze_ticket(
-            "کل شرکت اینترنت ندارد و همه کاربران درگیر هستند",
-            ticket_id="TCK-001",
-            debug=True,
-        )
-    )

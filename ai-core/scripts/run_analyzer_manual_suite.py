@@ -9,7 +9,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if __package__:
     from .analyzer_service import analyze_batch, analyze_ticket
 else:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from app.analyzer.analyzer_service import analyze_batch, analyze_ticket
 
 SCENARIOS = [

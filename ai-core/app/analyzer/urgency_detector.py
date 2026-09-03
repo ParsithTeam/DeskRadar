@@ -370,35 +370,3 @@ def detect_urgency(
 ) -> dict:
     return analyze_urgency(text, category, intent, sentiment)
 
-
-if __name__ == "__main__":
-    samples = [
-        {
-            "text": "سلام، من نیم ساعت دیگه جلسه دارم ولی vpn قطعه و احراز هویت نمیکنه",
-            "category": "vpn",
-            "intent": "vpn_authentication_error",
-        },
-        {
-            "text": "کل شرکت اینترنت ندارد و همه کاربران دچار مشکل شده‌اند",
-            "category": "network",
-            "intent": "network_drop",
-        },
-        {
-            "text": "هر وقت فرصت داشتید لطفا پرینتر اتاق من را بررسی کنید، فوری نیست",
-            "category": "printer",
-            "intent": "printer_error",
-        },
-        {
-            "text": "حجم ایمیل من پر شده و امروز باید چند فایل مهم ارسال کنم",
-            "category": "email",
-            "intent": "email_quota_issue",
-        },
-        {
-            "text": "لطفا نرم افزار جدید مورد نیاز تیم فروش را روی سیستم من نصب کنید",
-            "category": "software",
-            "intent": "software_install",
-        },
-    ]
-
-    for sample in samples:
-        print(detect_urgency(sample["text"], sample["category"], sample["intent"]))
