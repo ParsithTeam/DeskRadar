@@ -39,6 +39,12 @@ class IncidentUpdate(BaseModel):
     resolved_at: datetime | None = None
     #avg_similarity_score: Optional[float] = None
 
+class IncidentStatusUpdate(BaseModel):
+    """
+    مخصوص آپدیت status
+    """
+    status: IncidentStatus
+
 class IncidentResponse(IncidentBase):
     #Guid: اسکیمای نهایی ارسال شده به فرانت
     id: int

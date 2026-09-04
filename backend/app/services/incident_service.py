@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+
+from fastapi import HTTPException, status as http_status
+
 from app.repositories.incident_repository import IncidentRepository
 from app.services.alert_service import AlertService
 from app.schemas.incident import (
@@ -80,23 +83,31 @@ class IncidentService:
     async def get_all_incidents(self, status: IncidentStatus | None = None) -> list[dict]:
         return await self.incident_repo.get_all(status)
 
+
     async def get_incident_by_id(self, incident_id: int) -> dict | None:
         return await self.incident_repo.get_by_id(incident_id)
 
-    async def confirm_incident(self, incident_id: int) -> dict | None:
-        """تأیید رخداد احتمالی توسط اپراتور فنی"""
-        update_schema = IncidentUpdate(status=IncidentStatus.CONFIRMED)
-        return await self.incident_repo.update(incident_id, update_schema)
 
-    async def resolve_incident(self, incident_id: int) -> dict | None:
-        """علامت‌گذاری رخداد به عنوان برطرف‌شده همراه با ثبت زمان دقیق"""
-        update_schema = IncidentUpdate(
-            status=IncidentStatus.RESOLVED,
-            resolved_at=datetime.now(timezone.utc)
+    async def update_status(self, incident_id: int, new_status: IncidentStatus):
+        incident = await self.incident_repo.get_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail= f"Incident {incident_id} not found")
+
+        current_status= incident.get("status", IncidentStatus.CONFIRMED)
+        if self._is_incident_terminated(current_status):
+            raise HTTPException(status_code= http_status.Http_400, detail= f"Incident {incident_id} already terminated")
+
+        if current_status == new_status:
+            return incident
+
+        update_data = IncidentUpdate(
+            status=new_status,
+            resolved_at= datetime.now(timezone.utc) if new_status == IncidentStatus.RESOLVED else None,
         )
-        return await self.incident_repo.update(incident_id, update_schema)
+        return await self.incident_repo.update(incident_id=incident_id, update_data=update_data)
 
-    async def dismiss_incident(self, incident_id: int) -> dict | None:
-        """نادیده گرفتن یا رد رخداد کاندید (تشخیص نادرست AI)"""
-        update_schema = IncidentUpdate(status=IncidentStatus.DISMISSED)
-        return await self.incident_repo.update(incident_id, update_schema)
+
+    def _is_incident_terminated(self, status: IncidentStatus) -> bool:
+        if status in [IncidentStatus.DISMISSED, IncidentStatus.RESOLVED]:
+            return True
+        return False

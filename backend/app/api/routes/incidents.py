@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.schemas.incident import IncidentResponse, IncidentStatus
+from app.schemas.incident import IncidentResponse, IncidentStatus, IncidentStatusUpdate
 from app.api.routes.tickets import incident_serv as incident_service
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
@@ -47,35 +47,6 @@ async def get_incident_detail(incident_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     return incident
 
-
-@router.post("/{incident_id}/confirm", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
-async def confirm_incident(incident_id: int):
-    """
-    تأیید رخداد احتمالی توسط ادمین
-    """
-    incident = await incident_service.confirm_incident(incident_id)
-    if not incident:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
-    return incident
-
-
-@router.post("/{incident_id}/resolve", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
-async def resolve_incident(incident_id: int):
-    """
-    اعلام برطرف شدن رخداد توسط ادمین و ثبت زمان پایان
-    """
-    incident = await incident_service.resolve_incident(incident_id)
-    if not incident:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
-    return incident
-
-
-@router.post("/{incident_id}/dismiss", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
-async def dismiss_incident(incident_id: int):
-    """
-    رد کردن رخداد تشخیص داده شده توسط هوش مصنوعی (تشخیص نادرست)
-    """
-    incident = await incident_service.dismiss_incident(incident_id)
-    if not incident:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
-    return incident
+@router.patch("/{incident_id}/satus", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
+async def update_incident_status(incident_id: int, payload: IncidentStatusUpdate):
+    return await incident_service.update_incident_status(incident_id, payload.status)

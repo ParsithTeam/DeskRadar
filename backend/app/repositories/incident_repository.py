@@ -1,6 +1,6 @@
 from datetime import timezone, datetime
 import copy
-from app.schemas.incident import IncidentStatus, IncidentResponse, IncidentCreate, IncidentUpdate
+from app.schemas.incident import IncidentStatus, IncidentCreate, IncidentUpdate
 
 FAKE_INCIDENT_DB = []
 INCIDENT_ID_COUNTER = 911
@@ -44,9 +44,6 @@ class IncidentRepository:
         if not incident:
             return None
 
-        if self._is_incident_terminated(incident["status"]):
-            return None
-
         # استخراج داده‌های جدید
         update_dict = update_data.model_dump(exclude_unset=True)
 
@@ -66,8 +63,3 @@ class IncidentRepository:
 
         incident["updated_at"] = datetime.now(timezone.utc)
         return copy.deepcopy(incident)
-
-    def _is_incident_terminated(self, incident_status: IncidentStatus) -> bool:
-        if incident_status in [IncidentStatus.RESOLVED, IncidentStatus.DISMISSED]:
-            return True
-        return False
