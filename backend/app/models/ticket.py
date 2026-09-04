@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional
-from app.core.data_enum import Analysis_Status, Ticket_Status
 from app.core.database import Base
 from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum
+from app.schemas.ticket import AnalysisStatus, TicketStatus
+
 
 class TicketModel(Base):
     __tablename__ = "tickets"
@@ -13,8 +13,8 @@ class TicketModel(Base):
     departement = Column(String(100), nullable=True)
     requester_name = Column(String(100), nullable=True)
 
-    ticket_status = Column(SQLEnum(Ticket_Status), default=Ticket_Status.OPEN, nullable=False)
-    analysis_status = Column(SQLEnum(Analysis_Status), default=Analysis_Status.PENDING, nullable=False)
+    ticket_status = Column(SQLEnum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
+    analysis_status = Column(SQLEnum(AnalysisStatus), default=AnalysisStatus.PENDING, nullable=False)
 
     source = Column(String(20), default="manual", nullable=False) # manual یا csv
     fingerprint = Column(String(255), nullable=True, unique=True) # برای چلوگیری از ثبت تیکت تکراری

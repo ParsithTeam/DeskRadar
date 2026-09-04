@@ -1,8 +1,19 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-from app.core.data_enum import Ticket_Status, Analysis_Status
 from app.schemas.analysis import Ai_Analysis
+from enum import Enum
+
+class AnalysisStatus(str, Enum):
+    PENDING   = "pending"
+    COMPLETED = "complete"
+    FAILED    = "failed"
+
+class TicketStatus(str, Enum):
+    IN_PROGRESS = "in_progress"
+    OPEN        = "open"
+    RESOLVED    = "resolved"
+    CLOSED      = "closed"
 
 
 class TicketCreateRequest(BaseModel):
@@ -20,8 +31,8 @@ class TicketResponse(BaseModel):
     description: str
     requester: str
     department: str
-    analysis_status: Analysis_Status = Analysis_Status.PENDING
-    ticket_status: Ticket_Status = Ticket_Status.OPEN
+    analysis_status: AnalysisStatus = AnalysisStatus.PENDING
+    ticket_status: TicketStatus = TicketStatus.OPEN
     created_at: datetime
 
     ai_analysis: Optional[Ai_Analysis] = None

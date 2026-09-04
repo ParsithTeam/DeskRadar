@@ -1,5 +1,4 @@
-from app.core.data_enum import Analysis_Status, Ticket_Status
-from app.repositories.incident_repository import IncidentRepository
+from app.schemas.ticket import AnalysisStatus, TicketStatus
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
 from fastapi import BackgroundTasks, HTTPException, status
@@ -69,7 +68,7 @@ class TicketService:
                 print(f"Invalid content for ticket id: {ticket_id}. Aborting analysis.")
                 await self.ticket_repo.update_ticket_analysis(
                     ticket_id=ticket_id,
-                    new_analysis_status=Analysis_Status.FAILED
+                    new_analysis_status=AnalysisStatus.FAILED
                     )
                 return
 
@@ -87,7 +86,7 @@ class TicketService:
                                                                       old_tickets=old_tickets,
                                                                       open_incident=open_incidents)
             if not ai_raw_response:
-                await self.ticket_repo.update_ticket_analysis(ticket_id=ticket_id, new_analysis_status=Analysis_Status.FAILED)
+                await self.ticket_repo.update_ticket_analysis(ticket_id=ticket_id, new_analysis_status=AnalysisStatus.FAILED)
                 return
 
             analysis_data = ai_raw_response.get("analysis", {})
@@ -95,7 +94,7 @@ class TicketService:
             category = analysis_data.get("category", "unknown")
 
             await self.ticket_repo.update_ticket_analysis(ticket_id=ticket_id,
-                                                   new_analysis_status= Analysis_Status.COMPLETED,
+                                                   new_analysis_status= AnalysisStatus.COMPLETED,
                                                    new_analysis_data= analysis_data )
             
             print(f"Updating analysis for ticket id: {ticket_id} completed.")
@@ -110,7 +109,7 @@ class TicketService:
         except Exception as e:
             await self.ticket_repo.update_ticket_analysis(
                 ticket_id=ticket_id,
-                new_analysis_status=Analysis_Status.FAILED
+                new_analysis_status=AnalysisStatus.FAILED
             )
             print(f"Background analysis failed for ticket {ticket_id}: {str(e)}")
 
