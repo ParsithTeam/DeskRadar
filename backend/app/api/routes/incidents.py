@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status as http_status
 
 from app.schemas.incident import IncidentResponse, IncidentStatus, IncidentStatusUpdate
 from app.api.routes.tickets import incident_serv as incident_service
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/incidents", tags=["Incidents"])
 #     return incident
 
 
-@router.get("/", response_model=list[IncidentResponse], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=list[IncidentResponse], status_code=http_status.HTTP_200_OK)
 async def get_incidents(status: IncidentStatus | None = None):
     """
     دریافت لیست تمامی رخدادها
@@ -37,16 +37,16 @@ async def get_incidents(status: IncidentStatus | None = None):
     return await incident_service.get_all_incidents(status= status)
 
 
-@router.get("/{incident_id}", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
+@router.get("/{incident_id}", response_model=IncidentResponse, status_code=http_status.HTTP_200_OK)
 async def get_incident_detail(incident_id: int):
     """
     دریافت جزئیات یک رخداد خاص و تیکت‌های متصل به آن
     """
     incident = await incident_service.get_incident_by_id(incident_id)
     if not incident:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Incident not found")
     return incident
 
-@router.patch("/{incident_id}/satus", response_model=IncidentResponse, status_code=status.HTTP_200_OK)
+@router.patch("/{incident_id}/satus", response_model=IncidentResponse, status_code=http_status.HTTP_200_OK)
 async def update_incident_status(incident_id: int, payload: IncidentStatusUpdate):
     return await incident_service.update_incident_status(incident_id, payload.status)
