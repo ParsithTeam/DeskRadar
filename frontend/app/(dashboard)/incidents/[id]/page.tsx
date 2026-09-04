@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Radar,
   ShieldCheck,
+  XCircle,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useAppData } from "@/lib/app-context";
@@ -57,18 +58,30 @@ export default function IncidentDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {incident.status === "candidate" && (
-            <button
-              type="button"
-              onClick={() =>
-                updateIncidentStatus(incident.id, "confirmed")
-              }
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              تأیید رخداد
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  updateIncidentStatus(incident.id, "confirmed")
+                }
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                تأیید رخداد
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateIncidentStatus(incident.id, "dismissed")
+                }
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                رد کردن رخداد
+              </button>
+            </>
           )}
-          {incident.status !== "resolved" && (
+          {incident.status === "confirmed" && (
             <button
               type="button"
               onClick={() => updateIncidentStatus(incident.id, "resolved")}
@@ -164,7 +177,8 @@ export default function IncidentDetailPage() {
           <section className="panel p-5">
             <p className="text-[10px] text-slate-400 leading-6">
               تأیید رخداد به این معناست که تیم پشتیبانی وجود یک اختلال گسترده
-              را پذیرفته است. پس از رفع مشکل، وضعیت را «رفع‌شده» کنید.
+              را پذیرفته است. رخدادهای اشتباه را «رد شده» و رخدادهای تأییدشده
+              را پس از رفع مشکل «رفع‌شده» کنید.
             </p>
           </section>
         </aside>

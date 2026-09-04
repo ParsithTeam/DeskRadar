@@ -15,7 +15,11 @@ export type TicketStatus =
   | "resolved"
   | "closed";
 export type AnalysisStatus = "pending" | "complete" | "failed";
-export type IncidentStatus = "candidate" | "confirmed" | "resolved";
+export type IncidentStatus =
+  | "candidate"
+  | "confirmed"
+  | "resolved"
+  | "dismissed";
 export type EscalationStatus = "waiting" | "active" | "resolved";
 export type AlertSeverity = "low" | "medium" | "high" | "critical";
 
@@ -136,9 +140,11 @@ export interface Alert {
   title: string;
   message: string;
   severity: AlertSeverity;
-  type: "incident" | "sla" | "ticket" | "system" | "escalation";
+  type: "incident" | "ticket" | "escalation";
   createdAt: string;
   read: boolean;
+  assignedAdminId?: string;
+  assignedAdminName?: string;
   href?: string;
 }
 
@@ -149,4 +155,3 @@ export interface AppSnapshot {
   articles: KnowledgeArticle[];
   alerts: Alert[];
 }
-

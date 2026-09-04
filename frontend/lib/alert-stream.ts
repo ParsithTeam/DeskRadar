@@ -10,21 +10,24 @@ export function connectAlertStream({ onAlert }: AlertStreamOptions) {
   let socket: WebSocket | null = null;
   let pollingTimer: number | null = null;
   let stopped = false;
-  const seenIds = new Set<string>();
+  const seenVersions = new Map<string, string>();
+
+  const emitIfChanged = (alert: Alert) => {
+    if (!alert.id) return;
+    const version = JSON.stringify(alert);
+    if (seenVersions.get(alert.id) === version) return;
+    seenVersions.set(alert.id, version);
+    onAlert(alert);
+  };
 
   const startPolling = () => {
     if (!apiUrl || pollingTimer || stopped) return;
     pollingTimer = window.setInterval(async () => {
       try {
-        const response = await fetch(`${apiUrl}/alerts?unread=true`);
+        const response = await fetch(`${apiUrl}/alerts`);
         if (!response.ok) return;
         const alerts = (await response.json()) as Alert[];
-        alerts.forEach((alert) => {
-          if (!seenIds.has(alert.id)) {
-            seenIds.add(alert.id);
-            onAlert(alert);
-          }
-        });
+        alerts.forEach(emitIfChanged);
       } catch {
         // Polling will try again on the next interval.
       }
@@ -37,10 +40,7 @@ export function connectAlertStream({ onAlert }: AlertStreamOptions) {
       socket.addEventListener("message", (event) => {
         try {
           const alert = JSON.parse(event.data) as Alert;
-          if (alert.id && !seenIds.has(alert.id)) {
-            seenIds.add(alert.id);
-            onAlert(alert);
-          }
+          emitIfChanged(alert);
         } catch {
           // Ignore malformed messages and keep the stream alive.
         }
@@ -63,4 +63,3 @@ export function connectAlertStream({ onAlert }: AlertStreamOptions) {
     if (pollingTimer) window.clearInterval(pollingTimer);
   };
 }
-

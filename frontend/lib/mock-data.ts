@@ -371,16 +371,6 @@ export const seedAlerts: Alert[] = [
     href: "/incidents/201",
   },
   {
-    id: "alert-2",
-    title: "ریسک عبور از SLA",
-    message: "زمان انتظار تیکت #۱۰۲ به آستانه تعیین‌شده نزدیک شده است.",
-    severity: "high",
-    type: "sla",
-    createdAt: "۱۴ دقیقه پیش",
-    read: false,
-    href: "/tickets/102",
-  },
-  {
     id: "alert-3",
     title: "ارجاع جدید کاربر",
     message: "پاسخ AI مشکل کاربر واحد مالی را حل نکرده است.",
@@ -398,16 +388,9 @@ export const seedAlerts: Alert[] = [
     type: "ticket",
     createdAt: "۳۲ دقیقه پیش",
     read: true,
+    assignedAdminId: "admin-1",
+    assignedAdminName: "مدیر پشتیبانی",
     href: "/tickets/101",
-  },
-  {
-    id: "alert-5",
-    title: "وضعیت تحلیل‌گر",
-    message: "صف پردازش AI به وضعیت عادی بازگشت.",
-    severity: "low",
-    type: "system",
-    createdAt: "۲ ساعت پیش",
-    read: true,
   },
 ];
 
@@ -500,4 +483,3 @@ export function buildMockAnalysis(
 export function cloneSeedSnapshot(): AppSnapshot {
   return JSON.parse(JSON.stringify(seedSnapshot)) as AppSnapshot;
 }
-

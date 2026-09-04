@@ -113,6 +113,10 @@ const incidentStatusMap: Record<
     label: "رفع شده",
     className: "bg-emerald-50 text-emerald-700",
   },
+  dismissed: {
+    label: "رد شده",
+    className: "bg-slate-100 text-slate-600",
+  },
 };
 
 export function IncidentStatusBadge({

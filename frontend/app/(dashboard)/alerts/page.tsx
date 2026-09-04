@@ -3,9 +3,9 @@
 import Link from "next/link";
 import {
   BellRing,
-  CheckCheck,
   CircleAlert,
   Radio,
+  UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useAppData } from "@/lib/app-context";
@@ -23,7 +23,6 @@ export default function AlertsPage() {
   const {
     alerts,
     markAlertRead,
-    markAllAlertsRead,
     emitDemoAlert,
   } = useAppData();
 
@@ -44,7 +43,7 @@ export default function AlertsPage() {
             )}
           </div>
           <p className="page-description">
-            هشدارهای رخداد، SLA، تیکت فوری و ارجاع‌های جدید
+            هشدارهای رخداد، تیکت فوری و ارجاع‌های جدید
           </p>
         </div>
 
@@ -56,15 +55,6 @@ export default function AlertsPage() {
           >
             <Radio className="w-4 h-4" />
             تست هشدار زنده
-          </button>
-          <button
-            type="button"
-            onClick={markAllAlertsRead}
-            disabled={!unreadCount}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-[10px] font-bold disabled:opacity-40 cursor-pointer"
-          >
-            <CheckCheck className="w-4 h-4" />
-            خواندن همه
           </button>
         </div>
       </div>
@@ -113,7 +103,7 @@ export default function AlertsPage() {
                   {alert.href ? (
                     <Link
                       href={alert.href}
-                      onClick={() => markAlertRead(alert.id)}
+                      onClick={() => markAlertRead(alert.id, user)}
                       className="flex items-start gap-4 flex-1 min-w-0"
                     >
                       {content}
@@ -123,15 +113,23 @@ export default function AlertsPage() {
                       {content}
                     </div>
                   )}
-                  {!alert.read && (
-                    <button
-                      type="button"
-                      onClick={() => markAlertRead(alert.id)}
-                      className="text-[9px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer shrink-0"
-                    >
-                      خواندم
-                    </button>
-                  )}
+                  <div className="shrink-0 flex flex-col items-end gap-2">
+                    {alert.assignedAdminName && (
+                      <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-violet-700 bg-violet-50 border border-violet-100 px-2.5 py-1.5 rounded-lg">
+                        <UserCheck className="w-3.5 h-3.5" />
+                        مسئول: {alert.assignedAdminName}
+                      </span>
+                    )}
+                    {!alert.read && (
+                      <button
+                        type="button"
+                        onClick={() => markAlertRead(alert.id, user)}
+                        className="text-[9px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+                      >
+                        خواندم و به من تخصیص بده
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -146,4 +144,3 @@ export default function AlertsPage() {
     </div>
   );
 }
-

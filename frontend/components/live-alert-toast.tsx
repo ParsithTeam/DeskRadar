@@ -10,7 +10,7 @@ import type { Alert } from "@/types";
 
 export default function LiveAlertToast() {
   const { user } = useAuth();
-  const { alerts, ingestAlert } = useAppData();
+  const { alerts, ingestAlert, markAlertRead } = useAppData();
   const firstAlertId = useRef<string | null>(null);
   const [visibleAlert, setVisibleAlert] = useState<Alert | null>(null);
 
@@ -58,7 +58,11 @@ export default function LiveAlertToast() {
   return (
     <div className="fixed top-20 left-4 sm:left-6 z-50 w-[min(360px,calc(100vw-32px))] panel p-4 flex items-start gap-3 animate-toast-in shadow-[0_16px_45px_rgba(15,23,42,0.14)]">
       {visibleAlert.href ? (
-        <Link href={visibleAlert.href} className="flex items-start gap-3 flex-1">
+        <Link
+          href={visibleAlert.href}
+          onClick={() => markAlertRead(visibleAlert.id, user)}
+          className="flex items-start gap-3 flex-1"
+        >
           {content}
         </Link>
       ) : (

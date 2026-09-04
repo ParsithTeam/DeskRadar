@@ -60,8 +60,7 @@ interface AppContextValue extends AppSnapshot {
   createArticle: (
     article: Omit<KnowledgeArticle, "id" | "updatedAt">,
   ) => number;
-  markAlertRead: (alertId: string) => void;
-  markAllAlertsRead: () => void;
+  markAlertRead: (alertId: string, admin: User) => void;
   ingestAlert: (alert: Alert) => void;
   emitDemoAlert: () => void;
   resetDemoData: () => void;
@@ -153,16 +152,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     );
 
-    setAlerts((current) => [
-      makeAlert(
-        "تحلیل تیکت آماده شد",
-        `نتیجه تحلیل هوشمند تیکت #${ticketId} آماده مشاهده است.`,
-        "low",
-        "system",
-        `/tickets/${ticketId}`,
-      ),
-      ...current,
-    ]);
   }, []);
 
   const analyzeTicket = useCallback(
@@ -231,16 +220,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       });
       setTickets((current) => [...imported, ...current]);
-      setAlerts((current) => [
-        makeAlert(
-          "ورود گروهی تیکت‌ها",
-          `${imported.length.toLocaleString("fa-IR")} تیکت از فایل CSV وارد شد.`,
-          "low",
-          "system",
-          "/tickets",
-        ),
-        ...current,
-      ]);
       return imported.length;
     },
     [tickets],
@@ -417,23 +396,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [articles],
   );
 
-  const markAlertRead = useCallback((alertId: string) => {
+  const markAlertRead = useCallback((alertId: string, admin: User) => {
+    if (admin.role !== "admin") return;
     setAlerts((current) =>
       current.map((alert) =>
-        alert.id === alertId ? { ...alert, read: true } : alert,
+        alert.id === alertId
+          ? {
+              ...alert,
+              read: true,
+              assignedAdminId: alert.assignedAdminId ?? admin.id,
+              assignedAdminName: alert.assignedAdminName ?? admin.name,
+            }
+          : alert,
       ),
     );
   }, []);
 
-  const markAllAlertsRead = useCallback(() => {
-    setAlerts((current) => current.map((alert) => ({ ...alert, read: true })));
-  }, []);
-
   const ingestAlert = useCallback((alert: Alert) => {
-    setAlerts((current) => [
-      { ...alert, read: false },
-      ...current.filter((item) => item.id !== alert.id),
-    ]);
+    setAlerts((current) => {
+      const exists = current.some((item) => item.id === alert.id);
+      if (!exists) return [alert, ...current];
+      return current.map((item) => (item.id === alert.id ? alert : item));
+    });
   }, []);
 
   const emitDemoAlert = useCallback(() => {
@@ -476,7 +460,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateIncidentStatus,
       createArticle,
       markAlertRead,
-      markAllAlertsRead,
       ingestAlert,
       emitDemoAlert,
       resetDemoData,
@@ -495,7 +478,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       incidents,
       isReady,
       markAlertRead,
-      markAllAlertsRead,
       resetDemoData,
       sendEscalationMessage,
       tickets,

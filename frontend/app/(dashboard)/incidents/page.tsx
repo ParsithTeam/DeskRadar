@@ -61,6 +61,7 @@ export default function IncidentsPage() {
           <option value="candidate">نیازمند تأیید</option>
           <option value="confirmed">تأیید شده</option>
           <option value="resolved">رفع شده</option>
+          <option value="dismissed">رد شده</option>
         </select>
       </div>
 
@@ -119,4 +120,3 @@ export default function IncidentsPage() {
     </div>
   );
 }
-
