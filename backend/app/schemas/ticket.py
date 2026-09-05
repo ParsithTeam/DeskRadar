@@ -5,6 +5,7 @@ from app.schemas.analysis import AnalysisRead
 from enum import Enum
 
 class AnalysisStatus(str, Enum):
+    WAITING = "waiting"
     PENDING   = "pending"
     COMPLETED = "complete"
     FAILED    = "failed"
