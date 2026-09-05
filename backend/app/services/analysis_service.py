@@ -10,7 +10,7 @@ class AnalysisService:
                              description: str,
                              category: str | None,
                              old_tickets: list[dict],
-                             open_incident: list[dict]) -> dict:
+                             open_incidents: list[dict]) -> dict:
 
         text = f"{title} {description}".lower()
 
