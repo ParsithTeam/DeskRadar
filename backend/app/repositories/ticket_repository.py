@@ -1,7 +1,7 @@
 import hashlib
 from datetime import datetime, timezone
 
-from app.core.data_enum import Analysis_Status, Ticket_Status
+from app.schemas.ticket import AnalysisStatus, TicketStatus
 
 #-----------------------------------------
 #from app.models.ticket import TicketModel   //TODO:بعد از اتصال دیتا بیس از این مدل واقعی استفاده میکنیم
@@ -47,7 +47,8 @@ class TicketRepository:
     async def save_new_ticket(self, title: str, 
                         description: str, 
                         requester: str | None, 
-                        department: str | None) -> dict:
+                        department: str | None,
+                        analysis_status: AnalysisStatus = AnalysisStatus.PENDING) -> dict:
         
         # در آینده دیتابیس واقعی اینجا تزریق می‌شود:
         # def __init__(self, db_session): self.db = db_session
@@ -61,8 +62,8 @@ class TicketRepository:
             "description": description,
             "requester": requester or "None",
             "department": department or "None",
-            "ticket_status": Ticket_Status.OPEN,
-            "analysis_status": Analysis_Status.PENDING,
+            "ticket_status": TicketStatus.OPEN,
+            "analysis_status": analysis_status,
             "source": "manual",
             "fingerprint": FINGER_PRINT,
             "created_at": datetime.now(tz=timezone.utc),
@@ -78,7 +79,7 @@ class TicketRepository:
     
     async def update_ticket_analysis(self, 
                               ticket_id: int, 
-                              new_analysis_status: Analysis_Status, 
+                              new_analysis_status: AnalysisStatus,
                               new_analysis_data: dict | None = None)-> None:
         
         for T in FAKE_TICKETS_DB:
@@ -87,4 +88,11 @@ class TicketRepository:
                 T["analysis_status"] = new_analysis_status
                 T["updated_at"] = datetime.now(tz=timezone.utc)
                 break
+
+    async def update_ticket_status(self, ticket_id: int, new_status: TicketStatus)-> bool:
+        for T in FAKE_TICKETS_DB:
+            if T.get("ticket_id") == ticket_id:
+                T["ticket_status"] = new_status
+                return True
+        return False
 
