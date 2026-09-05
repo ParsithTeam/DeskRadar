@@ -54,7 +54,7 @@ class AnalysisService:
             "ticket_id" : ticket_id,
             "intelligence" : {
                 "incident": {
-                    "possible_incident": True,
+                    "possible_incident": False,
                     "severity": "high",
                     "fa_title_incident": "رخداد تست با موفقیت تشخیص داده شد",
                     "fa_reason_incident": "چندین تیکت هم‌پوشان شناسایی شد.",

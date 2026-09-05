@@ -27,14 +27,14 @@ ticket_service = TicketService(
 )
 
 @router.post("/", response_model=TicketResponse, status_code=status.HTTP_201_CREATED) #ریکوئست ایجاد تیکت جدید
-async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: BackgroundTasks):
+async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: BackgroundTasks, auto_analyze: bool=True):
     
     try:
 
         response = await ticket_service.create_ticket(
             **ticket_in.model_dump(),
             background_tasks = api_background_tasks,
-            auto_analyze=True
+            auto_analyze= auto_analyze
             )
         return response;
 
@@ -76,6 +76,8 @@ async def get_ticket_detail(ticket_id: int):
 async def import_tickets_csv():
     return {"message": "tickets uploaded successfully"}
 
-@router.post("/{ticket_id}/analyze", status_code=status.HTTP_200_OK)
-async def analyze_ticket_by_id(ticket_id: int):
-    return {"ticket_id": ticket_id, "status": "analyzed_by_ai"}
+@router.post("/{ticket_id}/analyze", status_code=status.HTTP_202_ACCEPTED)
+async def analyze_ticket_by_id(ticket_id: int, background_tasks: BackgroundTasks):
+    """اجرای دستی تحلیل روی تیکت"""
+    return await ticket_service.manual_analyze_ticket(ticket_id=ticket_id,
+                                                      background_task=background_tasks)
