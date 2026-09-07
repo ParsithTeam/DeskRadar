@@ -1,12 +1,12 @@
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
-from app.schemas.ticket import TicketCreateRequest, TicketResponse
+from app.schemas.ticket import TicketCreateRequest, TicketResponse, AdminTicketListItem, TicketStatus, TicketListItem
 from app.services.alert_service import AlertService
 from app.services.analysis_service import AnalysisService
 from app.services.incident_service import IncidentService
 from app.services.ticket_service import TicketService
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -36,7 +36,7 @@ async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: Ba
             background_tasks = api_background_tasks,
             auto_analyze= auto_analyze
             )
-        return response;
+        return response
 
     except HTTPException as http_ex:
         raise http_ex
@@ -47,11 +47,35 @@ async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: Ba
             detail= f"Unknow internal error occurred: {str(e)}"
         )
 
+@router.get("/", response_model=list[TicketListItem], status_code=status.HTTP_200_OK)
+async def list_user_tickets(
+        current_user:str,   # current_user = Depends(get_current_user),  # بعد از پیاده‌سازی Auth
+        limit: int = Query(20, ge=1, le=100),
+        offset: int = Query(0, ge=0)
+):
+    """لیست تیکت‌های کاربر لاگین‌شده با حداقل جزئیات"""
+    return await ticket_service.get_user_tickets(
+        requester=current_user,
+        limit=limit,
+        offset=offset
+    )
 
-@router.get("/", status_code=status.HTTP_200_OK) #//TODO: ریکوئست دریافت لیست تیکت ها با فیلتر
-async def get_all_tickets():
-    return ["t1", "t2", "t3"]
-
+# --- اندپوینت کنسول ادمین ---
+@router.get("/admin", response_model=list[AdminTicketListItem], status_code=status.HTTP_200_OK)
+async def list_admin_tickets(
+    # current_admin = Depends(get_current_admin), # اعتبارسنجی توکن ادمین
+    department: str|None = None,
+    ticket_status: TicketStatus|None = None,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
+    """دریافت لیست آیتم از تیکت های ادمین"""
+    return await ticket_service.get_admin_tickets(
+        department=department,
+        ticket_status=ticket_status,
+        limit=limit,
+        offset=offset
+    )
 
 @router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) # //TODO: ریکوئست دریافت پاسخ یک تیکت خاص
 async def get_ticket_detail(ticket_id: int):

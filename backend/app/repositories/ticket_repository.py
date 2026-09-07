@@ -1,7 +1,8 @@
+import copy
 import hashlib
 from datetime import datetime, timezone
 
-from app.schemas.ticket import AnalysisStatus, TicketStatus
+from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketUrgency
 
 #-----------------------------------------
 #from app.models.ticket import TicketModel   //TODO:بعد از اتصال دیتا بیس از این مدل واقعی استفاده میکنیم
@@ -68,7 +69,7 @@ class TicketRepository:
             "fingerprint": FINGER_PRINT,
             "created_at": datetime.now(tz=timezone.utc),
             "updated_at": datetime.now(tz=timezone.utc),
-
+            "urgency": TicketUrgency.UNKNOWN,
             "ai_analysis" : None
         }
 
@@ -85,6 +86,7 @@ class TicketRepository:
         for T in FAKE_TICKETS_DB:
             if T.get("ticket_id")== ticket_id:
                 T["ai_analysis"] = new_analysis_data
+                if new_analysis_data: T["urgency"] = new_analysis_data.get("urgency", TicketUrgency.UNKNOWN)
                 T["analysis_status"] = new_analysis_status
                 T["updated_at"] = datetime.now(tz=timezone.utc)
                 break
@@ -95,4 +97,26 @@ class TicketRepository:
                 T["ticket_status"] = new_status
                 return True
         return False
+
+    async def get_all_tickets(self) -> list[dict]:
+        return copy.deepcopy(FAKE_TICKETS_DB)
+
+    async def get_all(self,
+        requester: str | None = None,
+        department: str | None = None,
+        ticket_status: TicketStatus | None = None,
+        limit: int = 50,
+        offset: int = 0)-> list[dict]:
+        #TODO: باز نویسی مجدد این متد با کوئری های استاندارد دیتابیس
+        results = []
+        for ticket in FAKE_TICKETS_DB:
+            if requester and ticket.get("requester") != requester:
+                continue
+            if department and ticket.get("department") != department:
+                continue
+            if ticket_status and ticket.get("ticket_status") != ticket_status:
+                continue
+            results.append(ticket)
+
+        return results[offset: offset + limit]
 

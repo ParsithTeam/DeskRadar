@@ -16,6 +16,13 @@ class TicketStatus(str, Enum):
     RESOLVED    = "resolved"
     CLOSED      = "closed"
 
+class TicketUrgency(str, Enum):
+    UNKNOWN = "unknown"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
 
 class TicketCreateRequest(BaseModel):
 
@@ -44,3 +51,24 @@ class TicketUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+
+
+class TicketListItem(BaseModel):
+    ticket_id: int
+    title: str
+    created_at: datetime
+    analysis_status: AnalysisStatus
+    ticket_status: TicketStatus
+
+class AdminTicketListItem(BaseModel):
+    ticket_id: int
+
+    title: str
+    requester: str
+    department: str
+
+    analysis_status: AnalysisStatus
+    ticket_status: TicketStatus
+    created_at: datetime
+
+    urgency: TicketUrgency

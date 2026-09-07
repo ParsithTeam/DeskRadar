@@ -1,8 +1,5 @@
 # چون فعلا ای آی نداریم از یه فیک لاجیک ای آی اینحا استفاده کردم
-#  تا بعدا که ای آی اوکی شد جایگزین اش می کنیم 
-from app.models.ticket_analysis import TicketAnalysis
-
-
+#  تا بعدا که ای آی اوکی شد جایگزین اش می کنیم
 class AnalysisService:
 
     async def analyze_ticket(self, ticket_id: int,

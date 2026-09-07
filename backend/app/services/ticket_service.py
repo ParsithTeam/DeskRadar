@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from app.schemas.ticket import AnalysisStatus, TicketStatus
+from app.schemas.ticket import AnalysisStatus, TicketStatus, AdminTicketListItem
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
 from fastapi import BackgroundTasks, HTTPException, status as http_status
@@ -173,5 +173,37 @@ class TicketService:
                 )
 
             return target_ticket
-            
 
+    async def get_admin_all_tickets(self) -> list[AdminTicketListItem]:
+        rows = await self.ticket_repo.get_all_tickets()
+        return [AdminTicketListItem(**row) for row in rows]
+
+    async def get_user_tickets(
+            self,
+            requester: str,
+            limit: int = 20,
+            offset: int = 0
+    ) -> list[dict]:
+        """
+        واکشی تیکت‌های کاربر جاری:
+        اجبار فیلتر بر اساس نام/آیدی کاربر تا داده دیگران لو نرود.
+        """
+        return await self.ticket_repo.get_all(
+            requester=requester,
+            limit=limit,
+            offset=offset
+        )
+
+    async def get_admin_tickets(
+            self,
+            department: str|None = None,
+            ticket_status: TicketStatus|None = None,
+            limit: int = 50,
+            offset: int = 0
+    ) -> list[dict]:
+
+        return await self.ticket_repo.get_all(
+            department=department,
+            ticket_status=ticket_status,
+            limit=limit,
+            offset=offset)
