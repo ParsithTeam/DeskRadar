@@ -18,3 +18,18 @@ app.include_router(incident_router)
 @app.get("/health")
 def health_check():
     return {"status": "I'm alive!"}
+
+#ساخت اند پوینت تستی برای بارکردن کانکشن به پستجر اس کی ال
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+
+from app.core.database import get_db
+
+@app.get("/db-test")
+async def db_test(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT 1"))
+    return {
+        "database": "connected",
+        "result": result.scalar(),
+    }
