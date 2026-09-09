@@ -127,23 +127,3 @@ def analyze_intent(text: str, category: str) -> dict:
 
 def detect_intent(text: str, category: str) -> str:
     return analyze_intent(text, category)["intent"]
-
-
-if __name__ == "__main__":
-    tickets = [
-        {
-            "text": "سلام وی پی ان من قطع شده و ارور میده",
-            "category": "vpn",
-        },
-        {
-            "text": "لطفا فضا یا حجم ایمیل من رو ارتقا بدید",
-            "category": "email",
-        },
-        {
-            "text": "تیکت نمونه بدون هیچ کلمه خاصی",
-            "category": "network",
-        },
-    ]
-
-    for ticket in tickets:
-        print(analyze_intent(ticket["text"], ticket["category"]))

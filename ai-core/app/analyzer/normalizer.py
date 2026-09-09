@@ -170,15 +170,3 @@ def find_normalized_matches(text: str, phrases: Iterable[str]) -> list[str]:
 
     return matches
 
-
-if __name__ == "__main__":
-    samples = [
-        "  کاربر  كمك  می‌خواهد و VPN او قطع است  ",
-        "وی پی ان من وصل نمی‌شود و ارور احراز هویت می‌دهد",
-        "وای‌فای طبقه دوم خیلی کند شده",
-        "حجم ایمیل من پر شده",
-        "رمز عبور سامانه را فراموش کردم",
-    ]
-
-    for sample in samples:
-        print(normalize_persian_text(sample))

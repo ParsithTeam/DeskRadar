@@ -6,11 +6,11 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-if __package__:
-    from .analyzer_service import analyze_batch, analyze_ticket
-else:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from app.analyzer.analyzer_service import analyze_batch, analyze_ticket
+ai_core_root = str(Path(__file__).resolve().parents[1])
+if ai_core_root not in sys.path:
+    sys.path.insert(0, ai_core_root)
+
+from app.analyzer.analyzer_service import analyze_batch, analyze_ticket
 
 SCENARIOS = [
     {

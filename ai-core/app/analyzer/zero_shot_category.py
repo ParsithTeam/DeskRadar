@@ -332,15 +332,3 @@ def classify_category(text: str, debug: bool = False) -> dict:
 
     return apply_rule_fallback(clean_text, model_result)
 
-
-if __name__ == "__main__":
-    samples = [
-        "سلام، وی پی ان من وصل نمیشه و احراز هویت خطا میده",
-        "حجم ایمیل من پر شده و پیام جدید دریافت نمیکنم",
-        "کل شرکت اینترنت ندارد و همه کاربران مشکل دارند",
-        "پرینتر اتاق مالی چاپ نمیکنه",
-        "رمز سامانه را فراموش کردم و وارد حساب کاربری نمیشم",
-    ]
-
-    for sample in samples:
-        print(classify_category(sample))
