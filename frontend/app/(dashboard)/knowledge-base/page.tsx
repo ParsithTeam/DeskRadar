@@ -70,6 +70,9 @@ export default function KnowledgeBasePage() {
           <option value="network">شبکه</option>
           <option value="printer">پرینتر</option>
           <option value="account">حساب و دسترسی</option>
+          <option value="permission">مجوزها</option>
+          <option value="software">نرم‌افزار</option>
+          <option value="hardware">سخت‌افزار</option>
         </select>
       </div>
 
@@ -116,11 +119,10 @@ export default function KnowledgeBasePage() {
         <div className="panel">
           <EmptyState
             title="مقاله‌ای پیدا نشد"
-            description="عبارت جستجو یا دسته انتخاب‌شده را تغییر دهید."
+            description="API پایگاه دانش هنوز در بک‌اند فعال نشده است."
           />
         </div>
       )}
     </div>
   );
 }
-

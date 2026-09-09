@@ -5,17 +5,25 @@ export type TicketCategory =
   | "email"
   | "network"
   | "printer"
-  | "account";
+  | "account"
+  | "permission"
+  | "software"
+  | "hardware"
+  | "unknown";
 
-export type Urgency = "low" | "medium" | "high" | "critical";
+export type Urgency = "unknown" | "low" | "medium" | "high" | "critical";
 export type TicketStatus =
   | "open"
   | "in_progress"
   | "escalated"
   | "resolved"
   | "closed";
-export type AnalysisStatus = "pending" | "complete" | "failed";
-export type IncidentStatus = "candidate" | "confirmed" | "resolved";
+export type AnalysisStatus = "waiting" | "pending" | "complete" | "failed";
+export type IncidentStatus =
+  | "candidate"
+  | "confirmed"
+  | "resolved"
+  | "dismissed";
 export type EscalationStatus = "waiting" | "active" | "resolved";
 export type AlertSeverity = "low" | "medium" | "high" | "critical";
 
@@ -102,7 +110,7 @@ export interface Escalation {
 export interface IncidentTicket {
   ticketId: number;
   title: string;
-  similarity: number;
+  similarity?: number;
 }
 
 export interface Incident {
@@ -136,17 +144,10 @@ export interface Alert {
   title: string;
   message: string;
   severity: AlertSeverity;
-  type: "incident" | "sla" | "ticket" | "system" | "escalation";
+  type: "incident" | "ticket" | "escalation";
   createdAt: string;
   read: boolean;
+  assignedAdminId?: string;
+  assignedAdminName?: string;
   href?: string;
 }
-
-export interface AppSnapshot {
-  tickets: Ticket[];
-  escalations: Escalation[];
-  incidents: Incident[];
-  articles: KnowledgeArticle[];
-  alerts: Alert[];
-}
-

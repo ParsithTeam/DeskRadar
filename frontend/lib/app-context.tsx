@@ -9,19 +9,13 @@ import {
   useState,
 } from "react";
 import { apiClient } from "@/lib/api-client";
-import {
-  buildMockAnalysis,
-  categoryLabels,
-  cloneSeedSnapshot,
-} from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
 import type {
   Alert,
-  AlertSeverity,
-  AppSnapshot,
   Escalation,
+  Incident,
   IncidentStatus,
   KnowledgeArticle,
-  Role,
   Ticket,
   TicketCreateInput,
   TicketStatus,
@@ -35,427 +29,264 @@ interface ImportedTicket {
   createdAt?: string;
 }
 
-interface AppContextValue extends AppSnapshot {
+interface AppContextValue {
+  tickets: Ticket[];
+  escalations: Escalation[];
+  incidents: Incident[];
+  articles: KnowledgeArticle[];
+  alerts: Alert[];
   isReady: boolean;
-  createTicket: (input: TicketCreateInput) => number;
-  importTickets: (rows: ImportedTicket[], actor: User) => number;
-  analyzeTicket: (ticketId: number) => void;
-  updateTicketStatus: (ticketId: number, status: TicketStatus) => void;
+  dataError: string;
+  clearDataError: () => void;
+  refreshAll: () => Promise<void>;
+  loadTicket: (ticketId: number) => Promise<void>;
+  loadIncident: (incidentId: number) => Promise<void>;
+  createTicket: (input: TicketCreateInput) => Promise<number>;
+  importTickets: (rows: ImportedTicket[], actor: User) => Promise<number>;
+  analyzeTicket: (ticketId: number) => Promise<void>;
+  updateTicketStatus: (ticketId: number, status: TicketStatus) => Promise<void>;
   escalateTicket: (
     ticketId: number,
     reason: string,
     actor: User,
-  ) => string | null;
+  ) => Promise<string | null>;
   sendEscalationMessage: (
     escalationId: string,
     text: string,
     actor: User,
-  ) => void;
+  ) => Promise<void>;
   updateEscalationStatus: (
     escalationId: string,
     status: Escalation["status"],
     admin?: User,
-  ) => void;
-  updateIncidentStatus: (incidentId: number, status: IncidentStatus) => void;
+  ) => Promise<void>;
+  updateIncidentStatus: (
+    incidentId: number,
+    status: IncidentStatus,
+  ) => Promise<void>;
   createArticle: (
     article: Omit<KnowledgeArticle, "id" | "updatedAt">,
-  ) => number;
-  markAlertRead: (alertId: string) => void;
-  markAllAlertsRead: () => void;
+  ) => Promise<number>;
+  markAlertRead: (alertId: string, admin: User) => Promise<void>;
   ingestAlert: (alert: Alert) => void;
-  emitDemoAlert: () => void;
-  resetDemoData: () => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-function nowFa() {
-  return new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date());
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "خطای نامشخصی رخ داد.";
 }
 
-function shortTimeFa() {
-  return new Intl.DateTimeFormat("fa-IR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
+function upsertById<T extends { id: number }>(items: T[], item: T): T[] {
+  const exists = items.some((current) => current.id === item.id);
+  return exists
+    ? items.map((current) => (current.id === item.id ? item : current))
+    : [item, ...items];
 }
 
-function makeAlert(
-  title: string,
-  message: string,
-  severity: AlertSeverity,
-  type: Alert["type"],
-  href?: string,
-): Alert {
-  return {
-    id: `alert-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    title,
-    message,
-    severity,
-    type,
-    createdAt: "همین حالا",
-    read: false,
-    href,
-  };
+function wait(milliseconds: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const seed = useMemo(() => cloneSeedSnapshot(), []);
-  const [tickets, setTickets] = useState(seed.tickets);
-  const [escalations, setEscalations] = useState(seed.escalations);
-  const [incidents, setIncidents] = useState(seed.incidents);
-  const [articles, setArticles] = useState(seed.articles);
-  const [alerts, setAlerts] = useState(seed.alerts);
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [escalations] = useState<Escalation[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [articles] = useState<KnowledgeArticle[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [dataError, setDataError] = useState("");
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const snapshot = apiClient.getSnapshot();
-      setTickets(snapshot.tickets);
-      setEscalations(snapshot.escalations);
-      setIncidents(snapshot.incidents);
-      setArticles(snapshot.articles);
-      setAlerts(snapshot.alerts);
+  const clearDataError = useCallback(() => setDataError(""), []);
+
+  const refreshAll = useCallback(async () => {
+    if (!user) {
+      setTickets([]);
+      setIncidents([]);
+      setAlerts([]);
+      setDataError("");
       setIsReady(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
+      return;
+    }
+
+    setIsReady(false);
+    setDataError("");
+
+    const ticketRequest =
+      user.role === "admin"
+        ? apiClient.listAdminTickets(user)
+        : apiClient.listUserTickets(user);
+    const requests: Promise<unknown>[] = [ticketRequest];
+
+    if (user.role === "admin") {
+      requests.push(apiClient.listIncidents(), apiClient.listAlerts());
+    }
+
+    const results = await Promise.allSettled(requests);
+    const errors: string[] = [];
+
+    const ticketResult = results[0];
+    if (ticketResult.status === "fulfilled") {
+      setTickets(ticketResult.value as Ticket[]);
+    } else {
+      setTickets([]);
+      errors.push(`تیکت‌ها: ${errorMessage(ticketResult.reason)}`);
+    }
+
+    if (user.role === "admin") {
+      const incidentResult = results[1];
+      const alertResult = results[2];
+
+      if (incidentResult.status === "fulfilled") {
+        setIncidents(incidentResult.value as Incident[]);
+      } else {
+        setIncidents([]);
+        errors.push(`رخدادها: ${errorMessage(incidentResult.reason)}`);
+      }
+
+      if (alertResult.status === "fulfilled") {
+        setAlerts(alertResult.value as Alert[]);
+      } else {
+        setAlerts([]);
+        errors.push(`هشدارها: ${errorMessage(alertResult.reason)}`);
+      }
+    } else {
+      setIncidents([]);
+      setAlerts([]);
+    }
+
+    setDataError(errors.join(" | "));
+    setIsReady(true);
+  }, [user]);
 
   useEffect(() => {
-    if (!isReady) return;
-    apiClient.saveSnapshot({
-      tickets,
-      escalations,
-      incidents,
-      articles,
-      alerts,
-    });
-  }, [alerts, articles, escalations, incidents, isReady, tickets]);
+    const timer = window.setTimeout(() => void refreshAll(), 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshAll]);
 
-  const finishAnalysis = useCallback((ticketId: number) => {
-    setTickets((current) =>
-      current.map((ticket) => {
-        if (ticket.id !== ticketId) return ticket;
-        const analysis = buildMockAnalysis(ticket.title, ticket.description);
-        return {
-          ...ticket,
-          category: analysis.category,
-          categoryLabelFa: analysis.categoryLabelFa,
-          urgency: analysis.urgency,
-          confidence: analysis.confidence,
-          analysis,
-          analysisStatus: "complete",
-          updatedAt: nowFa(),
-        };
-      }),
-    );
+  const loadTicket = useCallback(
+    async (ticketId: number) => {
+      if (!user) return;
+      try {
+        const ticket = await apiClient.getTicket(ticketId, user);
+        setTickets((current) => upsertById(current, ticket));
+      } catch (error) {
+        setDataError(errorMessage(error));
+        throw error;
+      }
+    },
+    [user],
+  );
 
-    setAlerts((current) => [
-      makeAlert(
-        "تحلیل تیکت آماده شد",
-        `نتیجه تحلیل هوشمند تیکت #${ticketId} آماده مشاهده است.`,
-        "low",
-        "system",
-        `/tickets/${ticketId}`,
-      ),
-      ...current,
-    ]);
+  const loadIncident = useCallback(async (incidentId: number) => {
+    try {
+      const incident = await apiClient.getIncident(incidentId);
+      setIncidents((current) => upsertById(current, incident));
+    } catch (error) {
+      setDataError(errorMessage(error));
+      throw error;
+    }
   }, []);
 
-  const analyzeTicket = useCallback(
-    (ticketId: number) => {
-      setTickets((current) =>
-        current.map((ticket) =>
-          ticket.id === ticketId
-            ? { ...ticket, analysisStatus: "pending", updatedAt: nowFa() }
-            : ticket,
-        ),
-      );
-      window.setTimeout(() => finishAnalysis(ticketId), 700);
+  const pollTicketAnalysis = useCallback(
+    async (ticketId: number) => {
+      if (!user) return;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await wait(1500);
+        try {
+          const ticket = await apiClient.getTicket(ticketId, user);
+          setTickets((current) => upsertById(current, ticket));
+          if (ticket.analysisStatus !== "pending") return;
+        } catch (error) {
+          if (attempt === 19) setDataError(errorMessage(error));
+        }
+      }
     },
-    [finishAnalysis],
+    [user],
   );
 
   const createTicket = useCallback(
-    (input: TicketCreateInput) => {
-      const id =
-        tickets.reduce((largest, ticket) => Math.max(largest, ticket.id), 100) +
-        1;
-      const createdAt = nowFa();
-      const newTicket: Ticket = {
-        id,
-        ...input,
-        category: "account",
-        categoryLabelFa: "در حال تشخیص",
-        urgency: "low",
-        status: "open",
-        analysisStatus: "pending",
-        confidence: 0,
-        createdAt,
-        updatedAt: createdAt,
-        analysis: null,
-      };
-      setTickets((current) => [newTicket, ...current]);
-      window.setTimeout(() => finishAnalysis(id), 900);
-      return id;
-    },
-    [finishAnalysis, tickets],
-  );
-
-  const importTickets = useCallback(
-    (rows: ImportedTicket[], actor: User) => {
-      const firstId =
-        tickets.reduce((largest, ticket) => Math.max(largest, ticket.id), 100) +
-        1;
-      const imported = rows.map<Ticket>((row, index) => {
-        const analysis = buildMockAnalysis(row.title, row.description);
-        return {
-          id: firstId + index,
-          title: row.title,
-          description: row.description,
-          department: row.department,
-          requesterId: actor.id,
-          requesterName: actor.name,
-          category: analysis.category,
-          categoryLabelFa: categoryLabels[analysis.category],
-          urgency: analysis.urgency,
-          status: "open",
-          analysisStatus: "complete",
-          confidence: analysis.confidence,
-          createdAt: row.createdAt || nowFa(),
-          updatedAt: nowFa(),
-          analysis,
-        };
-      });
-      setTickets((current) => [...imported, ...current]);
-      setAlerts((current) => [
-        makeAlert(
-          "ورود گروهی تیکت‌ها",
-          `${imported.length.toLocaleString("fa-IR")} تیکت از فایل CSV وارد شد.`,
-          "low",
-          "system",
-          "/tickets",
-        ),
-        ...current,
-      ]);
-      return imported.length;
-    },
-    [tickets],
-  );
-
-  const updateTicketStatus = useCallback(
-    (ticketId: number, status: TicketStatus) => {
-      setTickets((current) =>
-        current.map((ticket) =>
-          ticket.id === ticketId
-            ? { ...ticket, status, updatedAt: nowFa() }
-            : ticket,
-        ),
-      );
-    },
-    [],
-  );
-
-  const escalateTicket = useCallback(
-    (ticketId: number, reason: string, actor: User) => {
-      const existing = escalations.find(
-        (item) => item.ticketId === ticketId && item.status !== "resolved",
-      );
-      if (existing) return existing.id;
-
-      const escalationId = `esc-${ticketId}-${Date.now()}`;
-      const createdAt = nowFa();
-      const escalation: Escalation = {
-        id: escalationId,
-        ticketId,
-        requesterId: actor.id,
-        requesterName: actor.name,
-        reason,
-        status: "waiting",
-        createdAt,
-        updatedAt: createdAt,
-        messages: [
-          {
-            id: `msg-${Date.now()}`,
-            senderId: actor.id,
-            senderName: actor.name,
-            senderRole: actor.role,
-            text: reason,
-            createdAt: shortTimeFa(),
-          },
-        ],
-      };
-
-      setEscalations((current) => [escalation, ...current]);
-      setTickets((current) =>
-        current.map((ticket) =>
-          ticket.id === ticketId
-            ? { ...ticket, status: "escalated", updatedAt: createdAt }
-            : ticket,
-        ),
-      );
-      setAlerts((current) => [
-        makeAlert(
-          "ارجاع جدید به کارشناس",
-          `${actor.name} تیکت #${ticketId} را برای بررسی انسانی ارجاع داد.`,
-          "high",
-          "escalation",
-          `/admin/escalated/${escalationId}`,
-        ),
-        ...current,
-      ]);
-      return escalationId;
-    },
-    [escalations],
-  );
-
-  const sendEscalationMessage = useCallback(
-    (escalationId: string, text: string, actor: User) => {
-      const cleaned = text.trim();
-      if (!cleaned) return;
-      setEscalations((current) =>
-        current.map((escalation) =>
-          escalation.id === escalationId
-            ? {
-                ...escalation,
-                status:
-                  escalation.status === "waiting" && actor.role === "admin"
-                    ? "active"
-                    : escalation.status,
-                assignedAdminId:
-                  actor.role === "admin"
-                    ? actor.id
-                    : escalation.assignedAdminId,
-                assignedAdminName:
-                  actor.role === "admin"
-                    ? actor.name
-                    : escalation.assignedAdminName,
-                updatedAt: nowFa(),
-                messages: [
-                  ...escalation.messages,
-                  {
-                    id: `msg-${Date.now()}-${Math.random()
-                      .toString(16)
-                      .slice(2)}`,
-                    senderId: actor.id,
-                    senderName: actor.name,
-                    senderRole: actor.role as Role,
-                    text: cleaned,
-                    createdAt: shortTimeFa(),
-                  },
-                ],
-              }
-            : escalation,
-        ),
-      );
-    },
-    [],
-  );
-
-  const updateEscalationStatus = useCallback(
-    (
-      escalationId: string,
-      status: Escalation["status"],
-      admin?: User,
-    ) => {
-      const ticketId = escalations.find(
-        (escalation) => escalation.id === escalationId,
-      )?.ticketId;
-      setEscalations((current) =>
-        current.map((escalation) => {
-          if (escalation.id !== escalationId) return escalation;
-          return {
-            ...escalation,
-            status,
-            assignedAdminId: admin?.id ?? escalation.assignedAdminId,
-            assignedAdminName: admin?.name ?? escalation.assignedAdminName,
-            updatedAt: nowFa(),
-          };
-        }),
-      );
-      if (status === "resolved" && ticketId) {
-        updateTicketStatus(ticketId, "resolved");
+    async (input: TicketCreateInput) => {
+      try {
+        const ticket = await apiClient.createTicket(input);
+        setTickets((current) => upsertById(current, ticket));
+        if (ticket.analysisStatus === "pending") {
+          void pollTicketAnalysis(ticket.id);
+        }
+        return ticket.id;
+      } catch (error) {
+        setDataError(errorMessage(error));
+        throw error;
       }
     },
-    [escalations, updateTicketStatus],
+    [pollTicketAnalysis],
+  );
+
+  const analyzeTicket = useCallback(
+    async (ticketId: number) => {
+      const previous = tickets.find((ticket) => ticket.id === ticketId);
+      setTickets((current) =>
+        current.map((ticket) =>
+          ticket.id === ticketId
+            ? { ...ticket, analysisStatus: "pending" }
+            : ticket,
+        ),
+      );
+
+      try {
+        await apiClient.analyzeTicket(ticketId);
+        void pollTicketAnalysis(ticketId);
+      } catch (error) {
+        if (previous) {
+          setTickets((current) => upsertById(current, previous));
+        }
+        setDataError(errorMessage(error));
+        throw error;
+      }
+    },
+    [pollTicketAnalysis, tickets],
   );
 
   const updateIncidentStatus = useCallback(
-    (incidentId: number, status: IncidentStatus) => {
-      setIncidents((current) =>
-        current.map((incident) =>
-          incident.id === incidentId
-            ? {
-                ...incident,
-                status,
-                resolvedAt:
-                  status === "resolved" ? nowFa() : incident.resolvedAt,
-              }
-            : incident,
-        ),
-      );
+    async (incidentId: number, status: IncidentStatus) => {
+      try {
+        const incident = await apiClient.updateIncidentStatus(incidentId, status);
+        setIncidents((current) => upsertById(current, incident));
+      } catch (error) {
+        setDataError(errorMessage(error));
+        throw error;
+      }
     },
     [],
   );
 
-  const createArticle = useCallback(
-    (article: Omit<KnowledgeArticle, "id" | "updatedAt">) => {
-      const id =
-        articles.reduce(
-          (largest, current) => Math.max(largest, current.id),
-          10,
-        ) + 1;
-      setArticles((current) => [
-        { ...article, id, updatedAt: nowFa() },
-        ...current,
-      ]);
-      return id;
-    },
-    [articles],
-  );
-
-  const markAlertRead = useCallback((alertId: string) => {
-    setAlerts((current) =>
-      current.map((alert) =>
-        alert.id === alertId ? { ...alert, read: true } : alert,
-      ),
-    );
-  }, []);
-
-  const markAllAlertsRead = useCallback(() => {
-    setAlerts((current) => current.map((alert) => ({ ...alert, read: true })));
+  const markAlertRead = useCallback(async (alertId: string, admin: User) => {
+    if (admin.role !== "admin") return;
+    try {
+      const alert = await apiClient.markAlertRead(alertId);
+      setAlerts((current) =>
+        current.map((item) => (item.id === alert.id ? alert : item)),
+      );
+    } catch (error) {
+      setDataError(errorMessage(error));
+      throw error;
+    }
   }, []);
 
   const ingestAlert = useCallback((alert: Alert) => {
-    setAlerts((current) => [
-      { ...alert, read: false },
-      ...current.filter((item) => item.id !== alert.id),
-    ]);
+    setAlerts((current) => {
+      const exists = current.some((item) => item.id === alert.id);
+      return exists
+        ? current.map((item) => (item.id === alert.id ? alert : item))
+        : [alert, ...current];
+    });
   }, []);
 
-  const emitDemoAlert = useCallback(() => {
-    setAlerts((current) => [
-      makeAlert(
-        "هشدار زنده آزمایشی",
-        "یک تیکت با فوریت بالا هم‌اکنون توسط Radar شناسایی شد.",
-        "high",
-        "ticket",
-        "/tickets",
-      ),
-      ...current,
-    ]);
-  }, []);
-
-  const resetDemoData = useCallback(() => {
-    const snapshot = apiClient.resetSnapshot();
-    setTickets(snapshot.tickets);
-    setEscalations(snapshot.escalations);
-    setIncidents(snapshot.incidents);
-    setArticles(snapshot.articles);
-    setAlerts(snapshot.alerts);
+  const unsupported = useCallback(async (feature: string): Promise<never> => {
+    const message = `API بخش «${feature}» هنوز در بک‌اند پیاده‌سازی نشده است.`;
+    setDataError(message);
+    throw new Error(message);
   }, []);
 
   const value = useMemo<AppContextValue>(
@@ -466,42 +297,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       articles,
       alerts,
       isReady,
+      dataError,
+      clearDataError,
+      refreshAll,
+      loadTicket,
+      loadIncident,
       createTicket,
-      importTickets,
+      importTickets: () => unsupported("ورود گروهی CSV"),
       analyzeTicket,
-      updateTicketStatus,
-      escalateTicket,
-      sendEscalationMessage,
-      updateEscalationStatus,
+      updateTicketStatus: () => unsupported("تغییر وضعیت تیکت"),
+      escalateTicket: () => unsupported("ارجاع تیکت و گفتگو"),
+      sendEscalationMessage: () => unsupported("گفتگوی ارجاع"),
+      updateEscalationStatus: () => unsupported("مدیریت ارجاع"),
       updateIncidentStatus,
-      createArticle,
+      createArticle: () => unsupported("ایجاد مقاله پایگاه دانش"),
       markAlertRead,
-      markAllAlertsRead,
       ingestAlert,
-      emitDemoAlert,
-      resetDemoData,
     }),
     [
       alerts,
       analyzeTicket,
       articles,
-      createArticle,
+      clearDataError,
       createTicket,
-      emitDemoAlert,
-      escalateTicket,
+      dataError,
       escalations,
-      importTickets,
-      ingestAlert,
       incidents,
+      ingestAlert,
       isReady,
+      loadIncident,
+      loadTicket,
       markAlertRead,
-      markAllAlertsRead,
-      resetDemoData,
-      sendEscalationMessage,
+      refreshAll,
       tickets,
-      updateEscalationStatus,
+      unsupported,
       updateIncidentStatus,
-      updateTicketStatus,
     ],
   );
 

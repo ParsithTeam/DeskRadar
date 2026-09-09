@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppData } from "@/lib/app-context";
-import { categoryLabels } from "@/lib/mock-data";
+import { categoryLabels } from "@/lib/ticket-categories";
 import type { TicketCategory } from "@/types";
 
 export default function CategoryChart() {
@@ -12,6 +12,10 @@ export default function CategoryChart() {
     { key: "network", color: "bg-rose-500" },
     { key: "printer", color: "bg-slate-400" },
     { key: "account", color: "bg-emerald-500" },
+    { key: "permission", color: "bg-violet-500" },
+    { key: "software", color: "bg-cyan-500" },
+    { key: "hardware", color: "bg-orange-500" },
+    { key: "unknown", color: "bg-slate-300" },
   ];
   const chartData = categories.map((item) => ({
     category: categoryLabels[item.key],

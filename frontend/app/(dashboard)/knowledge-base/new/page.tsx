@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight, Save } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useAppData } from "@/lib/app-context";
 import { useAuth } from "@/lib/auth-context";
-import { categoryLabels } from "@/lib/mock-data";
 import { AccessDenied } from "@/components/loading-state";
 import type { TicketCategory } from "@/types";
 
 export default function NewArticlePage() {
   const { user } = useAuth();
-  const { createArticle } = useAppData();
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState<TicketCategory>("vpn");
@@ -24,19 +19,6 @@ export default function NewArticlePage() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const id = createArticle({
-      title: title.trim(),
-      summary: summary.trim(),
-      category,
-      categoryLabelFa: categoryLabels[category],
-      tags: tags
-        .split(/[،,]/)
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      content: content.trim(),
-      author: user.name,
-    });
-    router.push(`/knowledge-base/${id}`);
   };
 
   return (
@@ -90,6 +72,9 @@ export default function NewArticlePage() {
               <option value="network">شبکه</option>
               <option value="printer">پرینتر</option>
               <option value="account">حساب و دسترسی</option>
+              <option value="permission">مجوزها</option>
+              <option value="software">نرم‌افزار</option>
+              <option value="hardware">سخت‌افزار</option>
             </select>
           </div>
         </div>
@@ -149,14 +134,15 @@ export default function NewArticlePage() {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
+            disabled
+            title="API پایگاه دانش در بک‌اند پیاده‌سازی نشده است."
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-300 text-white text-xs font-bold cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
-            ذخیره مقاله
+            ذخیره مقاله (در انتظار بک‌اند)
           </button>
         </div>
       </form>
     </div>
   );
 }
-
