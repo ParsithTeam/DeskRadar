@@ -33,6 +33,28 @@ class ModelNotReadyError(RuntimeError):
     """Raised when the embedding model is used before it has been loaded."""
 
 
+_PERSIAN_CHAR_TRANSLATION = str.maketrans({
+    "ي": "ی",
+    "ى": "ی",
+    "ك": "ک",
+    "ة": "ه",
+    "ۀ": "ه",
+    "ؤ": "و",
+    "أ": "ا",
+    "إ": "ا",
+    "ٱ": "ا",
+    "\u200f": " ",
+    "\u200e": " ",
+})
+
+
+def clean_persian_text(text: str | None) -> str:
+    """Normalize common Arabic/Persian letter variants while preserving case and words."""
+    if not text:
+        return ""
+    return str(text).translate(_PERSIAN_CHAR_TRANSLATION).strip()
+
+
 def build_ticket_text(
     title: str | None,
     description: str | None,
@@ -44,6 +66,7 @@ def build_ticket_text(
     The same format is applied to every ticket (pool tickets at startup and the
     incoming query ticket) so vectors are comparable. `category` is optional
     (it may come from the Analyzer) and is prepended as a light hint when present.
+    Common Arabic/Persian character variants (e.g. ي -> ی, ك -> ک) are normalized.
 
     Examples
     --------
@@ -52,9 +75,9 @@ def build_ticket_text(
     >>> build_ticket_text("VPN وصل نمیشه", "خطای احراز هویت میده")
     'VPN وصل نمیشه خطای احراز هویت میده'
     """
-    title = (title or "").strip()
-    description = (description or "").strip()
-    category = (category or "").strip()
+    title = clean_persian_text(title)
+    description = clean_persian_text(description)
+    category = clean_persian_text(category)
 
     parts: list[str] = []
     if category:

@@ -589,8 +589,19 @@ def _validate_config_coherence(config: dict) -> None:
         pass
 
 
+def _resolve_default_path(path: str) -> str:
+    if os.path.exists(path):
+        return path
+    candidate = os.path.join("ai-core", path)
+    if os.path.exists(candidate):
+        return candidate
+    return path
+
+
 def _load_config() -> dict:
-    path = os.environ.get("INFRASTRUCTURE_CONFIG_PATH", _DEFAULT_CONFIG_PATH)
+    path = os.environ.get("INFRASTRUCTURE_CONFIG_PATH")
+    if not path:
+        path = _resolve_default_path(_DEFAULT_CONFIG_PATH)
     with open(path, "r", encoding="utf-8") as fh:
         config = json.load(fh)
     if not isinstance(config, dict):
@@ -666,11 +677,13 @@ def _text_hash(text: str) -> str:
 
 
 def _old_tickets_path() -> str:
-    return os.environ.get("OLD_TICKETS_PATH", _DEFAULT_OLD_TICKETS_PATH)
+    path = os.environ.get("OLD_TICKETS_PATH")
+    return path if path else _resolve_default_path(_DEFAULT_OLD_TICKETS_PATH)
 
 
 def _articles_path() -> str:
-    return os.environ.get("KNOWLEDGE_ARTICLES_PATH", _DEFAULT_ARTICLES_PATH)
+    path = os.environ.get("KNOWLEDGE_ARTICLES_PATH")
+    return path if path else _resolve_default_path(_DEFAULT_ARTICLES_PATH)
 
 
 def _elapsed_ms(t0: float) -> float:

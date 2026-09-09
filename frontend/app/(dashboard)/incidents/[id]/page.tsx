@@ -6,11 +6,16 @@ import {
   CheckCircle2,
   Radar,
   ShieldCheck,
+  XCircle,
 } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAppData } from "@/lib/app-context";
 import { useAuth } from "@/lib/auth-context";
-import { AccessDenied, EmptyState } from "@/components/loading-state";
+import LoadingSkeleton, {
+  AccessDenied,
+  EmptyState,
+} from "@/components/loading-state";
 import UrgencyBadge, {
   IncidentStatusBadge,
 } from "@/components/status-badge";
@@ -18,10 +23,31 @@ import UrgencyBadge, {
 export default function IncidentDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { incidents, updateIncidentStatus } = useAppData();
-  const incident = incidents.find((item) => item.id === Number(params.id));
+  const { incidents, loadIncident, updateIncidentStatus } = useAppData();
+  const incidentId = Number(params.id);
+  const incident = incidents.find((item) => item.id === incidentId);
+  const [loadingDetail, setLoadingDetail] = useState(
+    Number.isFinite(incidentId),
+  );
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!Number.isFinite(incidentId)) {
+      return;
+    }
+    void loadIncident(incidentId)
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setLoadingDetail(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [incidentId, loadIncident]);
 
   if (!user || user.role !== "admin") return <AccessDenied />;
+  if (loadingDetail && !incident) return <LoadingSkeleton />;
 
   if (!incident) {
     return (
@@ -33,6 +59,17 @@ export default function IncidentDetailPage() {
       </div>
     );
   }
+
+  const changeStatus = async (status: "confirmed" | "resolved" | "dismissed") => {
+    setUpdating(true);
+    try {
+      await updateIncidentStatus(incident.id, status);
+    } catch {
+      // The provider displays the backend error globally.
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -57,21 +94,32 @@ export default function IncidentDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {incident.status === "candidate" && (
-            <button
-              type="button"
-              onClick={() =>
-                updateIncidentStatus(incident.id, "confirmed")
-              }
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              تأیید رخداد
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => void changeStatus("confirmed")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                تأیید رخداد
+              </button>
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => void changeStatus("dismissed")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                رد کردن رخداد
+              </button>
+            </>
           )}
-          {incident.status !== "resolved" && (
+          {incident.status === "confirmed" && (
             <button
               type="button"
-              onClick={() => updateIncidentStatus(incident.id, "resolved")}
+              disabled={updating}
+              onClick={() => void changeStatus("resolved")}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
@@ -129,9 +177,11 @@ export default function IncidentDetailPage() {
                       تیکت #{ticket.ticketId.toLocaleString("fa-IR")}
                     </p>
                   </div>
-                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg shrink-0">
-                    {(ticket.similarity * 100).toLocaleString("fa-IR")}٪ شباهت
-                  </span>
+                  {ticket.similarity !== undefined && (
+                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg shrink-0">
+                      {(ticket.similarity * 100).toLocaleString("fa-IR")}٪ شباهت
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -143,7 +193,9 @@ export default function IncidentDetailPage() {
             <h2 className="text-[10px] font-black text-slate-400">
               مشخصات رخداد
             </h2>
-            <DetailRow label="دسته" value={incident.categoryLabelFa} />
+            {incident.category !== "unknown" && (
+              <DetailRow label="دسته" value={incident.categoryLabelFa} />
+            )}
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-400">شدت</span>
               <UrgencyBadge level={incident.severity} />
@@ -164,7 +216,8 @@ export default function IncidentDetailPage() {
           <section className="panel p-5">
             <p className="text-[10px] text-slate-400 leading-6">
               تأیید رخداد به این معناست که تیم پشتیبانی وجود یک اختلال گسترده
-              را پذیرفته است. پس از رفع مشکل، وضعیت را «رفع‌شده» کنید.
+              را پذیرفته است. رخدادهای اشتباه را «رد شده» و رخدادهای تأییدشده
+              را پس از رفع مشکل «رفع‌شده» کنید.
             </p>
           </section>
         </aside>

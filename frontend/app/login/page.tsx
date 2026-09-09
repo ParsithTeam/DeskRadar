@@ -196,7 +196,7 @@ export default function LoginPage() {
           {mode === "login" && (
             <div className="mt-6 pt-5 border-t border-slate-100">
               <p className="text-[10px] text-slate-400 mb-3 text-center">
-                ورود سریع برای بررسی نسخه نمایشی
+                ورود موقت برای بررسی نقش‌ها تا آماده‌شدن Auth بک‌اند
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
