@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   BellRing,
   CircleAlert,
-  Radio,
   UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -23,7 +22,6 @@ export default function AlertsPage() {
   const {
     alerts,
     markAlertRead,
-    emitDemoAlert,
   } = useAppData();
 
   if (!user || user.role !== "admin") return <AccessDenied />;
@@ -47,16 +45,6 @@ export default function AlertsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={emitDemoAlert}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
-          >
-            <Radio className="w-4 h-4" />
-            تست هشدار زنده
-          </button>
-        </div>
       </div>
 
       <div className="panel overflow-hidden">
@@ -103,7 +91,7 @@ export default function AlertsPage() {
                   {alert.href ? (
                     <Link
                       href={alert.href}
-                      onClick={() => markAlertRead(alert.id, user)}
+                      onClick={() => void markAlertRead(alert.id, user).catch(() => undefined)}
                       className="flex items-start gap-4 flex-1 min-w-0"
                     >
                       {content}
@@ -123,10 +111,10 @@ export default function AlertsPage() {
                     {!alert.read && (
                       <button
                         type="button"
-                        onClick={() => markAlertRead(alert.id, user)}
+                        onClick={() => void markAlertRead(alert.id, user).catch(() => undefined)}
                         className="text-[9px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
                       >
-                        خواندم و به من تخصیص بده
+                        علامت‌گذاری به‌عنوان خوانده‌شده
                       </button>
                     )}
                   </div>

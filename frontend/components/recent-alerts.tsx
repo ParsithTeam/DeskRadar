@@ -33,7 +33,9 @@ export default function RecentAlerts() {
             href={alert.href || "/alerts"}
             key={alert.id}
             onClick={() => {
-              if (user?.role === "admin") markAlertRead(alert.id, user);
+              if (user?.role === "admin") {
+                void markAlertRead(alert.id, user).catch(() => undefined);
+              }
             }}
             className="py-3 flex items-center justify-between gap-3 text-xs last:pb-0 first:pt-0 group"
           >

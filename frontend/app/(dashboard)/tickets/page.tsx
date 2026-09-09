@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FileUp, Search, Sparkles } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppData } from "@/lib/app-context";
 import { useAuth } from "@/lib/auth-context";
 import { AccessDenied, EmptyState } from "@/components/loading-state";
@@ -18,33 +18,9 @@ import type {
 
 const PAGE_SIZE = 6;
 
-function parseCsv(text: string) {
-  const lines = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(",").map((item) => item.trim().toLowerCase());
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cells = line.split(",").map((item) => item.trim());
-      const value = (key: string) => cells[headers.indexOf(key)] || "";
-      return {
-        title: value("title"),
-        description: value("description"),
-        department: value("department") || "نامشخص",
-        createdAt: value("created_at"),
-      };
-    })
-    .filter((row) => row.title && row.description);
-}
-
 export default function TicketsPage() {
   const { user } = useAuth();
-  const { tickets, analyzeTicket, importTickets } = useAppData();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { tickets, analyzeTicket } = useAppData();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<
     TicketCategory | "all"
@@ -57,6 +33,7 @@ export default function TicketsPage() {
   );
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("");
+  const [analyzingIds, setAnalyzingIds] = useState<number[]>([]);
 
   const filteredTickets = useMemo(
     () =>
@@ -103,19 +80,17 @@ export default function TicketsPage() {
     setPage(1);
   };
 
-  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const rows = parseCsv(await file.text());
-    if (!rows.length) {
-      setNotice(
-        "فایل معتبر نیست. ستون‌های title، description و department را بررسی کنید.",
-      );
-    } else {
-      const count = importTickets(rows, user);
-      setNotice(`${count.toLocaleString("fa-IR")} تیکت با موفقیت وارد شد.`);
+  const handleAnalyze = async (ticketId: number) => {
+    setAnalyzingIds((current) => [...current, ticketId]);
+    setNotice("");
+    try {
+      await analyzeTicket(ticketId);
+      setNotice(`تحلیل تیکت #${ticketId.toLocaleString("fa-IR")} شروع شد.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "شروع تحلیل ناموفق بود.");
+    } finally {
+      setAnalyzingIds((current) => current.filter((id) => id !== ticketId));
     }
-    event.target.value = "";
   };
 
   return (
@@ -133,20 +108,14 @@ export default function TicketsPage() {
           </p>
         </div>
         <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            onChange={handleFile}
-            className="hidden"
-          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+            disabled
+            title="endpoint فعلی بک‌اند فایل را دریافت یا ذخیره نمی‌کند."
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-400 cursor-not-allowed opacity-70"
           >
             <FileUp className="w-4 h-4" />
-            ورود فایل CSV
+            ورود فایل CSV (در انتظار بک‌اند)
           </button>
         </div>
       </div>
@@ -194,6 +163,10 @@ export default function TicketsPage() {
               ["network", "شبکه"],
               ["printer", "پرینتر"],
               ["account", "حساب و دسترسی"],
+              ["permission", "مجوزها"],
+              ["software", "نرم‌افزار"],
+              ["hardware", "سخت‌افزار"],
+              ["unknown", "نامشخص"],
             ]}
           />
           <FilterSelect
@@ -210,6 +183,7 @@ export default function TicketsPage() {
               ["medium", "متوسط"],
               ["high", "فوری"],
               ["critical", "بحرانی"],
+              ["unknown", "نامشخص"],
             ]}
           />
           <FilterSelect
@@ -276,29 +250,36 @@ export default function TicketsPage() {
                         <UrgencyBadge level={ticket.urgency} />
                       </td>
                       <td className="py-4 px-4">
-                        {ticket.analysisStatus === "pending" ? (
+                        {ticket.analysisStatus === "waiting" ||
+                        ticket.analysisStatus === "failed" ? (
                           <button
                             type="button"
-                            onClick={() => analyzeTicket(ticket.id)}
+                            disabled={analyzingIds.includes(ticket.id)}
+                            onClick={() => void handleAnalyze(ticket.id)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100 transition-colors cursor-pointer"
                           >
                             <Sparkles className="w-3 h-3" />
-                            تحلیل مجدد
+                            {analyzingIds.includes(ticket.id)
+                              ? "در حال ارسال..."
+                              : ticket.analysisStatus === "failed"
+                                ? "تحلیل مجدد"
+                                : "تحلیل"}
                           </button>
                         ) : (
                           <div className="space-y-1">
                             <AnalysisStatusBadge
                               status={ticket.analysisStatus}
                             />
-                            {ticket.analysisStatus === "complete" && (
-                              <span className="block text-[9px] text-slate-400 pr-1">
-                                اطمینان{" "}
-                                {(ticket.confidence * 100).toLocaleString(
-                                  "fa-IR",
-                                )}
-                                ٪
-                              </span>
-                            )}
+                            {ticket.analysisStatus === "complete" &&
+                              ticket.confidence > 0 && (
+                                <span className="block text-[9px] text-slate-400 pr-1">
+                                  اطمینان{" "}
+                                  {(ticket.confidence * 100).toLocaleString(
+                                    "fa-IR",
+                                  )}
+                                  ٪
+                                </span>
+                              )}
                           </div>
                         )}
                       </td>

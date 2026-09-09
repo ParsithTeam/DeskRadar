@@ -10,17 +10,19 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppData } from "@/lib/app-context";
 import { useAuth } from "@/lib/auth-context";
-import { AccessDenied, EmptyState } from "@/components/loading-state";
+import LoadingSkeleton, {
+  AccessDenied,
+  EmptyState,
+} from "@/components/loading-state";
 import EscalationConversation from "@/components/escalation-conversation";
 import UrgencyBadge, {
   AnalysisStatusBadge,
   EscalationStatusBadge,
   TicketStatusBadge,
 } from "@/components/status-badge";
-import type { TicketStatus } from "@/types";
 
 export default function TicketDetailView({
   ticketId,
@@ -34,25 +36,32 @@ export default function TicketDetailView({
     tickets,
     escalations,
     analyzeTicket,
-    updateTicketStatus,
-    escalateTicket,
+    loadTicket,
   } = useAppData();
   const [copied, setCopied] = useState(false);
-  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
-  const [showEscalationForm, setShowEscalationForm] = useState(false);
-  const [escalationReason, setEscalationReason] = useState("");
+  const [loadingDetail, setLoadingDetail] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const ticket = tickets.find((item) => item.id === ticketId);
   const escalation = escalations.find((item) => item.ticketId === ticketId);
 
+  useEffect(() => {
+    let active = true;
+    void loadTicket(ticketId)
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setLoadingDetail(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadTicket, ticketId]);
+
   if (!user) return null;
   if (view === "admin" && user.role !== "admin") return <AccessDenied />;
-  if (
-    view === "user" &&
-    (user.role !== "user" || ticket?.requesterId !== user.id)
-  ) {
-    return <AccessDenied />;
-  }
+  if (view === "user" && user.role !== "user") return <AccessDenied />;
+
+  if (loadingDetail && !ticket) return <LoadingSkeleton />;
 
   if (!ticket) {
     return (
@@ -73,6 +82,14 @@ export default function TicketDetailView({
     );
   }
 
+  if (
+    view === "user" &&
+    ticket.requesterId !== user.id &&
+    ticket.requesterName !== user.name
+  ) {
+    return <AccessDenied />;
+  }
+
   const analysis = ticket.analysis;
   const backHref = view === "admin" ? "/tickets" : "/my-tickets";
 
@@ -83,12 +100,15 @@ export default function TicketDetailView({
     window.setTimeout(() => setCopied(false), 1800);
   };
 
-  const submitEscalation = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!escalationReason.trim()) return;
-    escalateTicket(ticket.id, escalationReason, user);
-    setEscalationReason("");
-    setShowEscalationForm(false);
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      await analyzeTicket(ticket.id);
+    } catch {
+      // The provider displays the backend error globally.
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -122,13 +142,9 @@ export default function TicketDetailView({
             <select
               aria-label="تغییر وضعیت تیکت"
               value={ticket.status}
-              onChange={(event) =>
-                updateTicketStatus(
-                  ticket.id,
-                  event.target.value as TicketStatus,
-                )
-              }
-              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600 focus:outline-none cursor-pointer"
+              disabled
+              title="API تغییر وضعیت تیکت در بک‌اند موجود نیست."
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-400 focus:outline-none cursor-not-allowed"
             >
               <option value="open">باز</option>
               <option value="in_progress">در حال پیگیری</option>
@@ -161,21 +177,29 @@ export default function TicketDetailView({
                       تحلیل هوشمند Radar
                     </h2>
                   </div>
-                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
-                    اطمینان مدل:{" "}
-                    {(analysis.confidence * 100).toLocaleString("fa-IR")}٪
-                  </span>
+                  {view === "admin" && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                      اطمینان مدل:{" "}
+                      {(analysis.confidence * 100).toLocaleString("fa-IR")}٪
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs">
+                <div
+                  className={`grid grid-cols-1 gap-5 text-xs ${
+                    view === "admin" ? "sm:grid-cols-3" : "sm:grid-cols-2"
+                  }`}
+                >
                   <InfoItem
                     label="دسته تشخیصی"
                     value={analysis.categoryLabelFa}
                   />
-                  <InfoItem
-                    label="قصد دقیق درخواست"
-                    value={analysis.intentLabelFa}
-                  />
+                  {view === "admin" && (
+                    <InfoItem
+                      label="قصد دقیق درخواست"
+                      value={analysis.intentLabelFa}
+                    />
+                  )}
                   <div className="space-y-1.5">
                     <span className="text-slate-400 block text-[10px]">
                       اولویت پیشنهادی
@@ -193,19 +217,21 @@ export default function TicketDetailView({
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <span className="text-slate-400 block text-[10px] font-bold">
-                    دلایل تصمیم سیستم
-                  </span>
-                  <ul className="space-y-2 text-[11px] text-slate-600">
-                    {analysis.reasonsFa.map((reason) => (
-                      <li key={reason} className="flex items-start gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-500 mt-1 shrink-0" />
-                        <span className="leading-6">{reason}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {view === "admin" && analysis.reasonsFa.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-slate-400 block text-[10px] font-bold">
+                      دلایل تصمیم سیستم
+                    </span>
+                    <ul className="space-y-2 text-[11px] text-slate-600">
+                      {analysis.reasonsFa.map((reason) => (
+                        <li key={reason} className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-500 mt-1 shrink-0" />
+                          <span className="leading-6">{reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </section>
 
               <section className="bg-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-sm space-y-4 relative overflow-hidden">
@@ -236,54 +262,15 @@ export default function TicketDetailView({
 
                 {view === "user" && !escalation && ticket.status !== "resolved" && (
                   <div className="relative z-10 pt-1">
-                    {!showEscalationForm ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowEscalationForm(true)}
-                        className="inline-flex items-center gap-2 text-[11px] font-bold text-white bg-violet-600 hover:bg-violet-500 px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <Headphones className="w-4 h-4" />
-                        با این پاسخ مشکلم حل نشد
-                      </button>
-                    ) : (
-                      <form
-                        onSubmit={submitEscalation}
-                        className="bg-white/[0.06] border border-white/10 p-4 rounded-xl space-y-3"
-                      >
-                        <label
-                          htmlFor="escalation-reason"
-                          className="text-[11px] font-bold text-slate-200"
-                        >
-                          چه بخشی از مشکل هنوز باقی مانده است؟
-                        </label>
-                        <textarea
-                          id="escalation-reason"
-                          required
-                          rows={3}
-                          value={escalationReason}
-                          onChange={(event) =>
-                            setEscalationReason(event.target.value)
-                          }
-                          placeholder="نتیجه انجام راه‌حل بالا را برای کارشناس بنویسید..."
-                          className="w-full bg-white text-slate-800 rounded-xl p-3 text-xs leading-6 focus:outline-none"
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-lg bg-violet-600 text-white text-[10px] font-bold cursor-pointer"
-                          >
-                            ارسال برای کارشناس
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowEscalationForm(false)}
-                            className="px-3 py-2 text-[10px] text-slate-400 cursor-pointer"
-                          >
-                            انصراف
-                          </button>
-                        </div>
-                      </form>
-                    )}
+                    <button
+                      type="button"
+                      disabled
+                      title="API ارجاع و گفتگو هنوز در بک‌اند پیاده‌سازی نشده است."
+                      className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-300 bg-white/10 px-4 py-2.5 rounded-xl cursor-not-allowed"
+                    >
+                      <Headphones className="w-4 h-4" />
+                      ارجاع به کارشناس (به‌زودی)
+                    </button>
                   </div>
                 )}
               </section>
@@ -291,22 +278,32 @@ export default function TicketDetailView({
           ) : (
             <section className="panel p-8 flex flex-col items-center text-center">
               <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-                <RefreshCw className="w-5 h-5 animate-spin" />
+                <RefreshCw
+                  className={`w-5 h-5 ${
+                    ticket.analysisStatus === "pending" ? "animate-spin" : ""
+                  }`}
+                />
               </div>
               <h2 className="text-sm font-black text-slate-800">
-                تحلیل هوشمند در حال آماده‌سازی است
+                {ticket.analysisStatus === "failed"
+                  ? "تحلیل قبلی ناموفق بود"
+                  : ticket.analysisStatus === "waiting"
+                    ? "این تیکت هنوز تحلیل نشده است"
+                    : "تحلیل هوشمند در حال آماده‌سازی است"}
               </h2>
               <p className="text-xs text-slate-400 mt-2 leading-6">
-                نتیجه دسته‌بندی، فوریت و پاسخ پیشنهادی تا چند لحظه دیگر نمایش
-                داده می‌شود.
+                {ticket.analysisStatus === "pending"
+                  ? "نتیجه دسته‌بندی، فوریت و پاسخ پیشنهادی پس از پایان پردازش نمایش داده می‌شود."
+                  : "ادمین می‌تواند تحلیل این تیکت را از همین صفحه یا فهرست تیکت‌ها شروع کند."}
               </p>
-              {view === "admin" && (
+              {view === "admin" && ticket.analysisStatus !== "pending" && (
                 <button
                   type="button"
-                  onClick={() => analyzeTicket(ticket.id)}
-                  className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+                  disabled={analyzing}
+                  onClick={() => void handleAnalyze()}
+                  className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-bold cursor-pointer disabled:opacity-50"
                 >
-                  اجرای مجدد تحلیل
+                  {analyzing ? "در حال ارسال..." : "شروع تحلیل"}
                 </button>
               )}
             </section>
@@ -332,27 +329,30 @@ export default function TicketDetailView({
               >
                 {analysis.relatedArticle.title}
               </Link>
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                <span className="text-slate-400">انطباق معنایی</span>
-                <span
-                  className={`font-bold ${
-                    analysis.relatedArticle.score < 0.8
-                      ? "text-amber-600"
-                      : "text-emerald-600"
-                  }`}
-                >
-                  {analysis.relatedArticle.score < 0.8
-                    ? "اطمینان پایین"
-                    : `${(
-                        analysis.relatedArticle.score * 100
-                      ).toLocaleString("fa-IR")}٪`}
-                </span>
-              </div>
+              {view === "admin" && (
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400">انطباق معنایی</span>
+                  <span
+                    className={`font-bold ${
+                      analysis.relatedArticle.score < 0.8
+                        ? "text-amber-600"
+                        : "text-emerald-600"
+                    }`}
+                  >
+                    {analysis.relatedArticle.score < 0.8
+                      ? "اطمینان پایین"
+                      : `${(
+                          analysis.relatedArticle.score * 100
+                        ).toLocaleString("fa-IR")}٪`}
+                  </span>
+                </div>
+              )}
             </section>
           )}
 
-          {view === "admin" && analysis && (
-            <>
+          {view === "admin" &&
+            analysis &&
+            analysis.similarTickets.length > 0 && (
               <section className="panel p-5 space-y-4">
                 <h2 className="text-[10px] font-black text-slate-400">
                   تیکت‌های مشابه
@@ -374,46 +374,7 @@ export default function TicketDetailView({
                   ))}
                 </div>
               </section>
-
-              <section className="panel p-5 space-y-4">
-                <h2 className="text-[10px] font-black text-slate-400">
-                  ارزیابی صحت تحلیل
-                </h2>
-                <p className="text-[11px] text-slate-500 leading-6">
-                  دسته‌بندی و اولویت پیشنهادی مورد تأیید است؟
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFeedback("up")}
-                    className={`py-2.5 rounded-xl text-[10px] font-bold border transition-colors cursor-pointer ${
-                      feedback === "up"
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                        : "border-slate-200 text-slate-500"
-                    }`}
-                  >
-                    تأیید می‌کنم
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFeedback("down")}
-                    className={`py-2.5 rounded-xl text-[10px] font-bold border transition-colors cursor-pointer ${
-                      feedback === "down"
-                        ? "bg-rose-50 border-rose-300 text-rose-700"
-                        : "border-slate-200 text-slate-500"
-                    }`}
-                  >
-                    نیاز به اصلاح
-                  </button>
-                </div>
-                {feedback && (
-                  <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl">
-                    بازخورد شما ثبت شد.
-                  </p>
-                )}
-              </section>
-            </>
-          )}
+            )}
 
           {escalation && (
             <section className="panel p-5 space-y-3">
@@ -450,4 +411,3 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

@@ -60,7 +60,7 @@ export default function LiveAlertToast() {
       {visibleAlert.href ? (
         <Link
           href={visibleAlert.href}
-          onClick={() => markAlertRead(visibleAlert.id, user)}
+          onClick={() => void markAlertRead(visibleAlert.id, user).catch(() => undefined)}
           className="flex items-start gap-3 flex-1"
         >
           {content}

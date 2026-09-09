@@ -101,9 +101,11 @@ export default function IncidentsPage() {
                   {incident.tickets.length.toLocaleString("fa-IR")} تیکت مرتبط
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-500">
-                {incident.categoryLabelFa}
-              </span>
+              {incident.category !== "unknown" && (
+                <span className="text-[10px] font-bold text-slate-500">
+                  {incident.categoryLabelFa}
+                </span>
+              )}
             </div>
           </Link>
         ))}
