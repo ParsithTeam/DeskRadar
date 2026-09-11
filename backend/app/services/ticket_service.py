@@ -174,9 +174,26 @@ class TicketService:
 
             return target_ticket
 
-    async def get_admin_all_tickets(self) -> list[AdminTicketListItem]:
-        rows = await self.ticket_repo.get_all_tickets()
-        return [AdminTicketListItem(**row) for row in rows]
+    async def get_user_ticket_detail(self, ticket_id:int, requester: str) -> dict:
+        target_ticket = await self.ticket_repo.get_by_id(target_ticket_id= ticket_id)
+
+        if target_ticket is None or target_ticket.get("requester") != requester:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Ticket Not found."
+            )
+        return target_ticket
+
+    async def get_admin_ticket_detail(self, ticket_id:int) -> dict:
+        target_ticket = await self.ticket_repo.get_by_id(target_ticket_id=ticket_id)
+
+        if target_ticket is None:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Ticket Not found."
+            )
+        return target_ticket
+
 
     async def get_user_tickets(
             self,

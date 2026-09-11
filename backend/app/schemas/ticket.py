@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-from app.schemas.analysis import AnalysisRead
+from app.schemas.analysis import AnalysisRead, AdminAnalysisRead
 from enum import Enum
 
 class AnalysisStatus(str, Enum):
@@ -44,6 +44,10 @@ class TicketResponse(BaseModel):
     created_at: datetime
 
     ai_analysis: AnalysisRead | None = None
+
+class AdminTicketResponse(TicketResponse):
+    ai_analysis: AdminAnalysisRead
+
 
 
 class TicketUpdateRequest(BaseModel):

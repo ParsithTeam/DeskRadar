@@ -1,7 +1,8 @@
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
-from app.schemas.ticket import TicketCreateRequest, TicketResponse, AdminTicketListItem, TicketStatus, TicketListItem
+from app.schemas.ticket import TicketCreateRequest, TicketResponse, AdminTicketListItem, TicketStatus, TicketListItem, \
+    AdminTicketResponse
 from app.services.alert_service import AlertService
 from app.services.analysis_service import AnalysisService
 from app.services.incident_service import IncidentService
@@ -77,11 +78,11 @@ async def list_admin_tickets(
         offset=offset
     )
 
-@router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) # //TODO: ریکوئست دریافت پاسخ یک تیکت خاص
-async def get_ticket_detail(ticket_id: int):
+@router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) #
+async def get_user_ticket(ticket_id: int, requester: str):
 
     try:
-        response = await ticket_service.get_ticket_by_id(ticket_id=ticket_id)
+        response = await ticket_service.get_user_ticket_detail(ticket_id=ticket_id, requester=requester)
         return response
     
     except HTTPException as http_ex:
@@ -93,7 +94,10 @@ async def get_ticket_detail(ticket_id: int):
             detail= f"Unknow internal error occurred: {str(e)}"
         )
 
-    
+@router.get("/admin/{ticket_id}",response_model=AdminTicketResponse, status_code=status.HTTP_200_OK)
+async def get_admin_ticket(ticket_id: int):
+    return await ticket_service.get_admin_ticket_detail(ticket_id=ticket_id)
+
     
 
 @router.post("/import", status_code=status.HTTP_200_OK)
