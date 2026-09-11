@@ -16,21 +16,32 @@ export default function NewTicketPage() {
   const [description, setDescription] = useState("");
   const [department, setDepartment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   if (!user || user.role !== "user") return <AccessDenied />;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim() || !description.trim() || !department.trim()) return;
     setSubmitting(true);
-    const id = createTicket({
-      title: title.trim(),
-      description: description.trim(),
-      department: department.trim(),
-      requesterId: user.id,
-      requesterName: user.name,
-    });
-    router.push(`/my-tickets/${id}`);
+    setError("");
+    try {
+      const id = await createTicket({
+        title: title.trim(),
+        description: description.trim(),
+        department: department.trim(),
+        requesterId: user.id,
+        requesterName: user.name,
+      });
+      router.push(`/my-tickets/${id}`);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "ثبت تیکت انجام نشد.",
+      );
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -114,6 +125,12 @@ export default function NewTicketPage() {
             تیکت را به کارشناس واقعی ارجاع دهید.
           </p>
         </div>
+
+        {error && (
+          <p className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-3 py-2 rounded-xl">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end">
           <button

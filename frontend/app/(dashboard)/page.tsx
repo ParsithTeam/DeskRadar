@@ -136,7 +136,8 @@ export default function DashboardPage() {
       ticket.urgency === "high" || ticket.urgency === "critical",
   ).length;
   const activeIncidents = incidents.filter(
-    (incident) => incident.status !== "resolved",
+    (incident) =>
+      incident.status !== "resolved" && incident.status !== "dismissed",
   ).length;
   const waitingEscalations = escalations.filter(
     (item) => item.status === "waiting",

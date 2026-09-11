@@ -1,14 +1,15 @@
 # AI Infrastructure - Backend Integration Contract
 
+> [!NOTE]
+> **Unified Primary Endpoint Available:** The combined `analysis + intelligence + meta` endpoint is now available at `POST /analyze`.
+> For new backend integrations, please refer to the primary contract: [`docs/unified_api_contract.md`](unified_api_contract.md).
+> This document remains valid as the reference for the standalone `POST /analyze-ticket` modular endpoint.
+
 ## Scope and current mode
 
 This contract covers the standalone AI Infrastructure service at `POST /analyze-ticket`.
 It returns similarity, knowledge-base retrieval, and incident-candidate data only.
 The current demo mode is **Python cosine with `qdrant.enabled=false`**.
-
-The Analyzer and the final combined `analysis + intelligence + meta` response are
-separate integration work. Until that combined endpoint exists, the Backend may
-call this endpoint and merge the returned infrastructure block itself.
 
 ## Request
 

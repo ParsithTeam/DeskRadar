@@ -149,3 +149,64 @@ def test_unified_health_endpoint():
         assert "model_loaded" in data
         assert "zero_shot_model_loaded" in data
         assert "rule_fallback_available" in data
+
+
+def test_unified_analyze_rejects_empty_payload():
+    with TestClient(app) as client:
+        response = client.post("/analyze", json={})
+        assert response.status_code == 422
+
+
+def test_unified_analyze_incident_deduplication():
+    with (
+        patch(
+            "app.analyzer.zero_shot_category.get_classifier",
+            return_value=fake_classifier,
+        ),
+        TestClient(app) as client,
+    ):
+        payload = {
+            "ticket_id": 105,
+            "title": "VPN وصل نمی‌شود",
+            "description": "وی‌پی‌ان ارور می‌دهد",
+            "old_tickets": [
+                {
+                    "ticket_id": 18,
+                    "title": "VPN خطا می‌دهد",
+                    "description": "قطع است",
+                    "category": "vpn",
+                    "status": "open",
+                },
+                {
+                    "ticket_id": 22,
+                    "title": "مشکل در اتصال به VPN",
+                    "description": "کار نمیکنه",
+                    "category": "vpn",
+                    "status": "open",
+                },
+                {
+                    "ticket_id": 35,
+                    "title": "قطع شدن ارتباط راه دور",
+                    "description": "vpn قطع است",
+                    "category": "vpn",
+                    "status": "open",
+                },
+            ],
+            "open_incidents": [
+                {
+                    "incident_id": 99,
+                    "category": "vpn",
+                    "matched_ticket_ids": [18, 22, 35],
+                }
+            ],
+        }
+
+        response = client.post("/analyze", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+
+        incident = data["intelligence"]["incident"]
+        assert incident["possible_incident"] is True
+        assert incident["is_duplicate"] is True
+        assert incident["duplicate_incident_id"] == 99
+

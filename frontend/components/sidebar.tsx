@@ -12,7 +12,6 @@ import {
   LogOut,
   PlusCircle,
   Radar,
-  Settings,
   TicketCheck,
   Tickets,
 } from "lucide-react";
@@ -84,12 +83,6 @@ export default function Sidebar() {
       roles: ["admin"],
       icon: Bell,
       badge: alerts.filter((alert) => !alert.read).length,
-    },
-    {
-      name: "تنظیمات",
-      href: "/settings",
-      roles: ["admin"],
-      icon: Settings,
     },
   ];
 

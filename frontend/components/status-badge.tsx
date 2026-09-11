@@ -10,6 +10,7 @@ import type {
 
 export default function UrgencyBadge({ level }: { level: Urgency }) {
   const styles: Record<Urgency, string> = {
+    unknown: "bg-slate-50 text-slate-500 border-slate-200",
     low: "bg-green-50 text-green-700 border-green-200",
     medium: "bg-blue-50 text-blue-700 border-blue-200",
     high: "bg-orange-50 text-orange-700 border-orange-200",
@@ -17,6 +18,7 @@ export default function UrgencyBadge({ level }: { level: Urgency }) {
   };
 
   const labels: Record<Urgency, string> = {
+    unknown: "نامشخص",
     low: "کم اهمیت",
     medium: "متوسط",
     high: "فوری / بالا",
@@ -67,8 +69,12 @@ const analysisStatusMap: Record<
   AnalysisStatus,
   { label: string; className: string }
 > = {
+  waiting: {
+    label: "منتظر شروع تحلیل",
+    className: "bg-slate-50 text-slate-600 border-slate-200",
+  },
   pending: {
-    label: "در انتظار تحلیل",
+    label: "در حال تحلیل",
     className: "bg-amber-50 text-amber-700 border-amber-100",
   },
   complete: {
@@ -112,6 +118,10 @@ const incidentStatusMap: Record<
   resolved: {
     label: "رفع شده",
     className: "bg-emerald-50 text-emerald-700",
+  },
+  dismissed: {
+    label: "رد شده",
+    className: "bg-slate-100 text-slate-600",
   },
 };
 

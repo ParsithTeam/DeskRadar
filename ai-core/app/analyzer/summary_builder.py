@@ -223,39 +223,3 @@ def create_summary(
         sentiment=sentiment,
     )["summary"]
 
-
-if __name__ == "__main__":
-    samples = [
-        {
-            "text": "سلام، من نیم ساعت دیگه جلسه دارم ولی vpn قطعه و احراز هویت نمیکنه",
-            "category": "vpn",
-            "intent": "vpn_authentication_error",
-            "urgency_level": "high",
-            "sentiment": "negative",
-        },
-        {
-            "text": "چند بار اعلام کردم هنوز ایمیل من درست نشده و کسی جواب نمیده",
-            "category": "email",
-            "intent": "email_access_issue",
-            "urgency_level": "high",
-            "sentiment": "frustrated",
-        },
-        {
-            "text": "هر وقت فرصت داشتید لطفا پرینتر اتاق من را بررسی کنید",
-            "category": "printer",
-            "intent": "printer_error",
-            "urgency_level": "low",
-            "sentiment": "positive",
-        },
-    ]
-
-    for sample in samples:
-        print(
-            build_summary(
-                text=sample["text"],
-                category=sample["category"],
-                intent=sample["intent"],
-                urgency_level=sample["urgency_level"],
-                sentiment=sample["sentiment"],
-            )
-        )

@@ -83,9 +83,15 @@ export default function MyTicketsPage() {
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
               <AnalysisStatusBadge status={ticket.analysisStatus} />
               <span className="text-[10px] font-bold text-slate-400">
-                {ticket.analysisStatus === "complete"
+                {ticket.analysisStatus === "complete" && ticket.confidence > 0
                   ? `${(ticket.confidence * 100).toLocaleString("fa-IR")}٪ اطمینان`
-                  : "در حال پردازش"}
+                  : ticket.analysisStatus === "complete"
+                    ? "تحلیل آماده است"
+                  : ticket.analysisStatus === "pending"
+                    ? "در حال پردازش"
+                    : ticket.analysisStatus === "failed"
+                      ? "تحلیل ناموفق"
+                      : "منتظر شروع تحلیل"}
               </span>
             </div>
           </Link>

@@ -8,4 +8,8 @@ __pycache__/
 # AI model cache & computed embeddings cache
 ai-core/.model_cache/
 ai-core/data/.cache/
+/data/
+.model_cache
+ai-core/app/analyzer/test_analyzer_results.json
+.DS_Store
 data/

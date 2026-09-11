@@ -22,9 +22,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const CURRENT_USER_KEY = "deskradar_user_v2";
-const ACCOUNTS_KEY = "deskradar_accounts_v2";
 
-const demoAccounts: Account[] = [
+const temporaryAccounts: Account[] = [
   {
     id: "admin-1",
     name: "مدیر پشتیبانی",
@@ -40,20 +39,6 @@ const demoAccounts: Account[] = [
     role: "user",
   },
 ];
-
-function readAccounts() {
-  const saved = window.localStorage.getItem(ACCOUNTS_KEY);
-  if (!saved) return demoAccounts;
-  try {
-    const accounts = JSON.parse(saved) as Account[];
-    const registered = accounts.filter(
-      (account) => !demoAccounts.some((demo) => demo.email === account.email),
-    );
-    return [...demoAccounts, ...registered];
-  } catch {
-    return demoAccounts;
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -80,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const account = readAccounts().find(
+    const account = temporaryAccounts.find(
       (item) =>
         item.email.toLowerCase() === normalizedEmail &&
         item.password === password,
@@ -114,33 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (password.length < 6) return "رمز عبور باید حداقل ۶ کاراکتر باشد.";
 
-    const accounts = readAccounts();
-    if (accounts.some((account) => account.email === normalizedEmail)) {
-      return "این ایمیل قبلاً ثبت شده است.";
-    }
-
-    const account: Account = {
-      id: `user-${Date.now()}`,
-      name: cleanName,
-      email: normalizedEmail,
-      password,
-      role: "user",
-    };
-    const updatedAccounts = [...accounts, account];
-    window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
-    const authenticatedUser: User = {
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      role: account.role,
-    };
-    setUser(authenticatedUser);
-    window.localStorage.setItem(
-      CURRENT_USER_KEY,
-      JSON.stringify(authenticatedUser),
-    );
-    router.replace("/");
-    return null;
+    return "API ثبت‌نام هنوز در بک‌اند پیاده‌سازی نشده است.";
   };
 
   const logout = () => {

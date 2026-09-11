@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useAppData } from "@/lib/app-context";
+import { useAuth } from "@/lib/auth-context";
 
 export default function RecentAlerts() {
-  const { alerts } = useAppData();
+  const { user } = useAuth();
+  const { alerts, markAlertRead } = useAppData();
   const colorMap = {
     critical: "text-rose-600 bg-rose-50",
     high: "text-amber-600 bg-amber-50",
@@ -30,6 +32,11 @@ export default function RecentAlerts() {
           <Link
             href={alert.href || "/alerts"}
             key={alert.id}
+            onClick={() => {
+              if (user?.role === "admin") {
+                void markAlertRead(alert.id, user).catch(() => undefined);
+              }
+            }}
             className="py-3 flex items-center justify-between gap-3 text-xs last:pb-0 first:pt-0 group"
           >
             <div className="space-y-1 min-w-0 flex-1">
