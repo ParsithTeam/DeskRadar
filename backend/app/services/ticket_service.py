@@ -1,6 +1,7 @@
 from typing import Tuple
 
-from app.schemas.ticket import AnalysisStatus, TicketStatus, AdminTicketListItem
+from app.repositories.querise.ticket_querise import TicketQuery
+from app.schemas.ticket import AnalysisStatus, TicketStatus
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
 from fastapi import BackgroundTasks, HTTPException, status as http_status
@@ -89,6 +90,15 @@ class TicketService:
             
             print(f"Updating analysis for ticket id: {ticket_id} completed.")
 
+        except Exception as e:
+            await self.ticket_repo.update_ticket_analysis(
+                ticket_id=ticket_id,
+                new_analysis_status=AnalysisStatus.FAILED
+            )
+            print(f"Background analysis failed for ticket {ticket_id}: {str(e)}")
+            return
+
+        try:
             if intelligence_data:
                 await self.incident_serv.upsert_from_ai(
                     ticket_id=ticket_id,
@@ -101,11 +111,11 @@ class TicketService:
                 ticket_id=ticket_id,
                 new_analysis_status=AnalysisStatus.FAILED
             )
-            print(f"Background analysis failed for ticket {ticket_id}: {str(e)}")
+            print(f"Failed to upsert in incident service for ticket: {ticket_id}: {str(e)}")
 
     #---------- helper methods for process_ticket_analyze ----------
     async def _fetch_and_validate_ticket(self, ticket_id: int) -> Tuple[dict|None, bool]:
-        ticket = await self.ticket_repo.get_by_id(ticket_id)
+        ticket = await self.get_ticket_by_id(ticket_id= ticket_id)
         if not ticket:
             print(f"No ticket found for ticket id: {ticket_id}")
             return None, False
@@ -139,7 +149,7 @@ class TicketService:
 
     async def manual_analyze_ticket(self, ticket_id:int, background_task:BackgroundTasks ) -> dict:
         # بررسی وجود تیکت
-        ticket = await self.ticket_repo.get_by_id(ticket_id)
+        ticket = await self.get_ticket_by_id(ticket_id=ticket_id)
         if not ticket:
             raise HTTPException(
                 status_code=http_status.HTTP_404_NOT_FOUND,
@@ -162,20 +172,13 @@ class TicketService:
 
 
 
-    async def get_ticket_by_id(self, ticket_id: int ) -> dict:
+    async def get_ticket_by_id(self, ticket_id: int ) -> dict | None:
             
-            target_ticket = await self.ticket_repo.get_by_id(target_ticket_id= ticket_id)
+            return await self.ticket_repo.get_ticket(query=TicketQuery(ticket_id=ticket_id))
 
-            if target_ticket is None:
-                raise HTTPException(
-                    status_code=http_status.HTTP_404_NOT_FOUND,
-                    detail="Ticket Not found."
-                )
-
-            return target_ticket
 
     async def get_user_ticket_detail(self, ticket_id:int, requester: str) -> dict:
-        target_ticket = await self.ticket_repo.get_by_id(target_ticket_id= ticket_id)
+        target_ticket = await self.ticket_repo.get_ticket(query=TicketQuery(ticket_id=ticket_id, requester=requester))
 
         if target_ticket is None or target_ticket.get("requester") != requester:
             raise HTTPException(
@@ -185,7 +188,7 @@ class TicketService:
         return target_ticket
 
     async def get_admin_ticket_detail(self, ticket_id:int) -> dict:
-        target_ticket = await self.ticket_repo.get_by_id(target_ticket_id=ticket_id)
+        target_ticket = await self.get_ticket_by_id(ticket_id=ticket_id)
 
         if target_ticket is None:
             raise HTTPException(
