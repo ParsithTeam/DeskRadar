@@ -2,6 +2,7 @@ import copy
 import hashlib
 from datetime import datetime, timezone
 
+from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketUrgency
 
 #-----------------------------------------
@@ -37,11 +38,15 @@ class TicketRepository:
                 return T
         return None
     
-    async def get_by_id(self, target_ticket_id: int)-> dict | None:
+    async def get_ticket(self, query: TicketQuery)-> dict | None:
 
         for T in FAKE_TICKETS_DB:
-            if T.get("ticket_id") == target_ticket_id:
-                return T
+            if query.ticket_id is not None and T.get("ticket_id") != query.ticket_id:
+                continue
+            if query.requester is not None and T.get("requester") != query.requester:
+                continue
+            return T
+            #TODO: پیاده سازی فیلتر جزئیات خروجی ai
         return None
 
     
@@ -73,7 +78,7 @@ class TicketRepository:
             "ai_analysis" : None
         }
 
-        _id_counter+= 1;
+        _id_counter+= 1
         FAKE_TICKETS_DB.append(new_ticket)
 
         return new_ticket

@@ -5,7 +5,7 @@ from pydantic import BaseModel,Field
 
 class SimilarTicket(BaseModel):
     ticket_id: int
-    similarity: float
+    similarity: float = Field(gt=0.0, le=1.0, description="Similarity Score in range of [0.0,1.0]")
     match_level: str  # "very_similar", "similar", "related"
     title: str
     category: str
@@ -119,3 +119,10 @@ class AnalysisRead(BaseModel):
 
     reasons_fa: list[str] = []
     related_article: list[SimpleRelatedArticle] = []
+
+class AdminAnalysisRead(AnalysisRead):
+    """
+    اسکیما مخصوص خروجی دیتا آنالیز برای ادمین
+    """
+    related_article: list[RelatedArticle] = []
+    similar_tickets: list[SimilarTicket] = []
