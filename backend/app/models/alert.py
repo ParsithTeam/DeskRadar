@@ -73,6 +73,16 @@ class Alert(Base):
         nullable=False,
     )
 
+    assigned_admin_id = Column(
+        String(100),
+        nullable=True,
+    )
+
+    assigned_admin_name = Column(
+        String(100),
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow,
