@@ -1,3 +1,4 @@
+from fastapi import Query
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
@@ -86,3 +87,13 @@ class TicketList(BaseModel):
 
 class AdminTicketList(TicketList):
     items: list[AdminTicketListItem]
+
+#------------- Filter Schemas ------------
+class TicketFilterParams(BaseModel):
+    q: str | None = Query(None, description="Search term for title/desc")
+    category: str | None = Query(None)
+    department: str | None = Query(None, min_length=1, max_length=100)
+    urgency: TicketUrgency | None = Query(None)
+    ticket_status: TicketStatus | None = Query(None)
+    limit: int = Query(20, ge=1, le=100)
+    offset: int = Query(0, ge=0)

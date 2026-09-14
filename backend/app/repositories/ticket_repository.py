@@ -106,12 +106,14 @@ class TicketRepository:
     async def get_all_tickets(self) -> list[dict]:
         return copy.deepcopy(FAKE_TICKETS_DB)
 
-    async def get_all(self,
-        requester: str | None = None,
-        department: str | None = None,
-        ticket_status: TicketStatus | None = None,
-        limit: int = 50,
-        offset: int = 0)-> tuple[list[dict], int]:
+    async def get_all(self,query: TicketQuery)-> tuple[list[dict], int]:
+        #Hint: تمام پارامتر های قابل فیلتر اینجا بررسی نشده
+        requester= query.requester
+        department= query.department
+        ticket_status= query.ticket_status
+        limit = query.limit or 20
+        offset = query.offset or 0
+
         #TODO: باز نویسی مجدد این متد با کوئری های استاندارد دیتابیس
         results = []
         total = 0

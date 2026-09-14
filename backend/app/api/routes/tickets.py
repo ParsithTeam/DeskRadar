@@ -2,7 +2,7 @@ from app.repositories.alert_repository import AlertRepository
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
 from app.schemas.ticket import TicketCreateRequest, TicketResponse, TicketStatus, TicketList, \
-    AdminTicketResponse, TicketStatusUpdateRequest, AdminTicketList
+    AdminTicketResponse, TicketStatusUpdateRequest, AdminTicketList, TicketUrgency, TicketFilterParams
 from app.services.alert_service import AlertService
 from app.services.analysis_service import AnalysisService
 from app.services.incident_service import IncidentService
@@ -65,18 +65,18 @@ async def list_user_tickets(
 @router.get("/admin", response_model=AdminTicketList, status_code=status.HTTP_200_OK)
 async def list_admin_tickets(
     # current_admin = Depends(get_current_admin), # اعتبارسنجی توکن ادمین
-    department: str|None = None,
-    ticket_status: TicketStatus|None = None,
+    #TODO: جایگزینی با فیلتر اسکما بعد از اضافه کردن Depends
+    q: str | None = Query(None, description="Search term for title/desc"),
+    category: str | None = Query(None),
+    department: str | None = Query(None, min_length=1, max_length=100),
+    urgency: TicketUrgency | None = Query(None),
+    ticket_status: TicketStatus | None = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
     """دریافت لیست آیتم از تیکت های ادمین"""
-    return await ticket_service.get_admin_tickets(
-        department=department,
-        ticket_status=ticket_status,
-        limit=limit,
-        offset=offset
-    )
+    filters = TicketFilterParams(q=q, category=category, department=department, urgency=urgency, ticket_status=ticket_status, limit=limit, offset=offset)
+    return await ticket_service.get_admin_tickets(filters=filters)
 
 @router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) #
 async def get_user_ticket(ticket_id: int, requester: str):

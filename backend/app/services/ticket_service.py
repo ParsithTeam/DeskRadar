@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from app.repositories.querise.ticket_querise import TicketQuery
-from app.schemas.ticket import AnalysisStatus, TicketStatus
+from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketFilterParams
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
 from fastapi import BackgroundTasks, HTTPException, status as http_status
@@ -208,26 +208,16 @@ class TicketService:
         واکشی تیکت‌های کاربر جاری:
         اجبار فیلتر بر اساس نام/آیدی کاربر تا داده دیگران لو نرود.
         """
-        items, total = await self.ticket_repo.get_all(
-            requester=requester,
-            limit=limit,
-            offset=offset
-        )
+        filter_query = TicketQuery(requester=requester, limit=limit, offset=offset)
+        items, total = await self.ticket_repo.get_all(query=filter_query)
         return {"items": items, "total": total}
 
     async def get_admin_tickets(
             self,
-            department: str|None = None,
-            ticket_status: TicketStatus|None = None,
-            limit: int = 50,
-            offset: int = 0
+            filters: TicketFilterParams,
     ) -> dict:
-
-        items, total = await self.ticket_repo.get_all(
-            department=department,
-            ticket_status=ticket_status,
-            limit=limit,
-            offset=offset)
+        filter_query = TicketQuery(**filters.model_dump(exclude_unset=True))
+        items, total = await self.ticket_repo.get_all(query=filter_query)
         return {"items": items, "total": total}
 
     async def update_ticket_status(self, ticket_id: int, status: TicketStatus):
