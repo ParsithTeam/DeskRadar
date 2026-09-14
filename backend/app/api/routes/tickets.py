@@ -1,8 +1,8 @@
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
-from app.schemas.ticket import TicketCreateRequest, TicketResponse, AdminTicketListItem, TicketStatus, TicketListItem, \
-    AdminTicketResponse
+from app.schemas.ticket import TicketCreateRequest, TicketResponse, TicketStatus, TicketList, \
+    AdminTicketResponse, TicketStatusUpdateRequest, AdminTicketList
 from app.services.alert_service import AlertService
 from app.services.analysis_service import AnalysisService
 from app.services.incident_service import IncidentService
@@ -48,7 +48,7 @@ async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: Ba
             detail= f"Unknow internal error occurred: {str(e)}"
         )
 
-@router.get("/", response_model=list[TicketListItem], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=TicketList, status_code=status.HTTP_200_OK)
 async def list_user_tickets(
         current_user:str,   # current_user = Depends(get_current_user),  # بعد از پیاده‌سازی Auth
         limit: int = Query(20, ge=1, le=100),
@@ -62,7 +62,7 @@ async def list_user_tickets(
     )
 
 # --- اندپوینت کنسول ادمین ---
-@router.get("/admin", response_model=list[AdminTicketListItem], status_code=status.HTTP_200_OK)
+@router.get("/admin", response_model=AdminTicketList, status_code=status.HTTP_200_OK)
 async def list_admin_tickets(
     # current_admin = Depends(get_current_admin), # اعتبارسنجی توکن ادمین
     department: str|None = None,
@@ -105,7 +105,11 @@ async def import_tickets_csv():
     return {"message": "tickets uploaded successfully"}
 
 @router.post("/{ticket_id}/analyze", status_code=status.HTTP_202_ACCEPTED)
-async def analyze_ticket_by_id(ticket_id: int, background_tasks: BackgroundTasks):
+async def analyze_ticket(ticket_id: int, background_tasks: BackgroundTasks):
     """اجرای دستی تحلیل روی تیکت"""
     return await ticket_service.manual_analyze_ticket(ticket_id=ticket_id,
                                                       background_task=background_tasks)
+
+@router.patch("/{ticket_id}/status", response_model=AdminTicketResponse, status_code=status.HTTP_200_OK)
+async def update_ticket_status(ticket_id: int, payload: TicketStatusUpdateRequest):
+    return await ticket_service.update_ticket_status(ticket_id=ticket_id, status=payload.status)

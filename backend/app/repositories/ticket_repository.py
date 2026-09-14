@@ -96,12 +96,12 @@ class TicketRepository:
                 T["updated_at"] = datetime.now(tz=timezone.utc)
                 break
 
-    async def update_ticket_status(self, ticket_id: int, new_status: TicketStatus)-> bool:
+    async def update_ticket_status(self, ticket_id: int, new_status: TicketStatus)-> dict | None:
         for T in FAKE_TICKETS_DB:
             if T.get("ticket_id") == ticket_id:
                 T["ticket_status"] = new_status
-                return True
-        return False
+                return T
+        return None
 
     async def get_all_tickets(self) -> list[dict]:
         return copy.deepcopy(FAKE_TICKETS_DB)
@@ -111,9 +111,10 @@ class TicketRepository:
         department: str | None = None,
         ticket_status: TicketStatus | None = None,
         limit: int = 50,
-        offset: int = 0)-> list[dict]:
+        offset: int = 0)-> tuple[list[dict], int]:
         #TODO: باز نویسی مجدد این متد با کوئری های استاندارد دیتابیس
         results = []
+        total = 0
         for ticket in FAKE_TICKETS_DB:
             if requester and ticket.get("requester") != requester:
                 continue
@@ -122,6 +123,7 @@ class TicketRepository:
             if ticket_status and ticket.get("ticket_status") != ticket_status:
                 continue
             results.append(ticket)
+            total += 1
 
-        return results[offset: offset + limit]
+        return results[offset: offset + limit], total
 

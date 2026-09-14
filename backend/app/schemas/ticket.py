@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 from app.schemas.analysis import AnalysisRead, AdminAnalysisRead
@@ -46,16 +46,17 @@ class TicketResponse(BaseModel):
     ai_analysis: AnalysisRead | None = None
 
 class AdminTicketResponse(TicketResponse):
-    ai_analysis: AdminAnalysisRead
+    ai_analysis: AdminAnalysisRead | None = None
 
 
 
 class TicketUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    status: TicketStatus | None = None
 
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
-
+class TicketStatusUpdateRequest(BaseModel):
+    status: TicketStatus
 
 class TicketListItem(BaseModel):
     ticket_id: int
@@ -63,6 +64,8 @@ class TicketListItem(BaseModel):
     created_at: datetime
     analysis_status: AnalysisStatus
     ticket_status: TicketStatus
+
+    model_config = ConfigDict(from_attributes=True)
 
 class AdminTicketListItem(BaseModel):
     ticket_id: int
@@ -76,3 +79,10 @@ class AdminTicketListItem(BaseModel):
     created_at: datetime
 
     urgency: TicketUrgency
+
+class TicketList(BaseModel):
+    items: list[TicketListItem]
+    total: int = Field(ge=0)
+
+class AdminTicketList(TicketList):
+    items: list[AdminTicketListItem]

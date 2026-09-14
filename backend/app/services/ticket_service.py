@@ -203,16 +203,17 @@ class TicketService:
             requester: str,
             limit: int = 20,
             offset: int = 0
-    ) -> list[dict]:
+    ) -> dict:
         """
         واکشی تیکت‌های کاربر جاری:
         اجبار فیلتر بر اساس نام/آیدی کاربر تا داده دیگران لو نرود.
         """
-        return await self.ticket_repo.get_all(
+        items, total = await self.ticket_repo.get_all(
             requester=requester,
             limit=limit,
             offset=offset
         )
+        return {"items": items, "total": total}
 
     async def get_admin_tickets(
             self,
@@ -220,10 +221,19 @@ class TicketService:
             ticket_status: TicketStatus|None = None,
             limit: int = 50,
             offset: int = 0
-    ) -> list[dict]:
+    ) -> dict:
 
-        return await self.ticket_repo.get_all(
+        items, total = await self.ticket_repo.get_all(
             department=department,
             ticket_status=ticket_status,
             limit=limit,
             offset=offset)
+        return {"items": items, "total": total}
+
+    async def update_ticket_status(self, ticket_id: int, status: TicketStatus):
+        ticket = await self.get_ticket_by_id(ticket_id=ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND,detail=f"Ticket {ticket_id} not found.")
+        return await self.ticket_repo.update_ticket_status(ticket_id=ticket_id, new_status=status)
+
+
