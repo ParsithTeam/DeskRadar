@@ -70,3 +70,21 @@ class IncidentResponse(IncidentBase):
 
     # این تنظیم جایگزین class Config: orm_mode = True در Pydantic v2 است
     model_config = ConfigDict(from_attributes=True)
+
+class IncidentListItem(BaseModel):
+    title_fa: str
+    severity: IncidentSeverity
+    status: IncidentStatus
+    updated_at: datetime
+    resolved: bool = False
+
+class IncidentList(BaseModel):
+    items: list[IncidentListItem] = Field(default_factory=list)
+    total: int
+
+#------------------- Filters ---------------------
+class IncidentFilter(BaseModel):
+    status: IncidentStatus | None
+
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1)
