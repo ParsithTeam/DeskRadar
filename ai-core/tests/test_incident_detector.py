@@ -114,3 +114,67 @@ def test_open_incident_duplicate_prefers_the_largest_cluster_overlap():
 
     assert candidate.is_duplicate is True
     assert candidate.duplicate_incident_id == 81
+
+
+def test_incident_matched_tickets_includes_query_ticket_and_similarities():
+    config = {
+        "incident_detection": {
+            "similarity_floor": 0.75,
+            "medium_min_tickets": 2,
+            "medium_max_tickets": 3,
+            "high_min_tickets": 4,
+        }
+    }
+    similar = [
+        SimilarTicket(ticket_id=18, similarity=0.9124, match_level="very_similar", title="VPN fails", category="vpn"),
+        SimilarTicket(ticket_id=22, similarity=0.8841, match_level="very_similar", title="VPN offline", category="vpn"),
+    ]
+
+    candidate = detect_incident_candidate(
+        similar,
+        "vpn",
+        config,
+        query_ticket_id=101,
+    )
+
+    assert candidate.possible_incident is True
+    # Verify matched_ticket_ids contains query ticket id and cluster tickets
+    assert candidate.matched_ticket_ids == [101, 18, 22]
+
+    # Verify matched_tickets structure and similarities
+    assert len(candidate.matched_tickets) == 3
+    assert candidate.matched_tickets[0].ticket_id == 101
+    assert candidate.matched_tickets[0].similarity == 1.0
+    assert candidate.matched_tickets[1].ticket_id == 18
+    assert candidate.matched_tickets[1].similarity == 0.9124
+    assert candidate.matched_tickets[2].ticket_id == 22
+    assert candidate.matched_tickets[2].similarity == 0.8841
+
+
+def test_incident_matched_tickets_without_query_ticket_id():
+    config = {
+        "incident_detection": {
+            "similarity_floor": 0.75,
+            "medium_min_tickets": 2,
+            "medium_max_tickets": 3,
+            "high_min_tickets": 4,
+        }
+    }
+    similar = [
+        SimilarTicket(ticket_id=18, similarity=0.85, match_level="very_similar", title="VPN fails", category="vpn"),
+        SimilarTicket(ticket_id=22, similarity=0.80, match_level="similar", title="VPN offline", category="vpn"),
+    ]
+
+    candidate = detect_incident_candidate(
+        similar,
+        "vpn",
+        config,
+    )
+
+    assert candidate.possible_incident is True
+    assert candidate.matched_ticket_ids == [18, 22]
+    assert len(candidate.matched_tickets) == 2
+    assert candidate.matched_tickets[0].ticket_id == 18
+    assert candidate.matched_tickets[0].similarity == 0.85
+    assert candidate.matched_tickets[1].ticket_id == 22
+    assert candidate.matched_tickets[1].similarity == 0.80
