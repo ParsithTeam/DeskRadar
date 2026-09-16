@@ -10,10 +10,15 @@ class IncidentRepository:
     def __init__(self):
         pass
 
-    async def get_all(self, status: IncidentStatus | None = None) -> list[dict]:
-        if status:
-            return [inc for inc in FAKE_INCIDENT_DB if inc.get("status") == status]
-        return FAKE_INCIDENT_DB
+    async def get_all(self, offset:int, limit=int, status: IncidentStatus | None = None ) -> tuple[list[dict], int]:
+
+        items = []
+        for inc in FAKE_INCIDENT_DB:
+            if status and inc.get("status") != status:
+                continue
+            items.append(inc)
+
+        return items[offset:offset+limit], len(items)
 
     async def get_by_id(self, incident_id: int) -> dict | None:
         for inc in FAKE_INCIDENT_DB:

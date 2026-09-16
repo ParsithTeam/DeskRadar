@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status as http_status
+from sqlalchemy import true, false
 
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
@@ -9,7 +10,7 @@ from app.schemas.incident import (
     IncidentCreate,
     IncidentUpdate,
     IncidentStatus,
-    IncidentSeverity
+    IncidentSeverity, IncidentFilter
 )
 from app.schemas.alert import AlertCreate, AlertSeverity, AlertType
 
@@ -43,7 +44,7 @@ class IncidentService:
 
         matched_tickets = list(incident_info.get("matched_tickets", []))
         if len(matched_tickets) == 0:
-            print("Probebly bad request format..!")
+            print("Probably bad request format..!")
         try:
             matched_ticket_ids = self._matched_ticket_parser(matched_tickets)
         except Exception as e:
@@ -102,9 +103,12 @@ class IncidentService:
         return matched_ticket_ids, matched_tickets
 
 
-    async def get_all_incidents(self, status: IncidentStatus | None = None) -> list[dict]:
-        return await self.incident_repo.get_all(status)
-        #TODO: اینجا باید لیستی از ایتم لیست های رخداد ارسال بشه. نیاز به هماهنگی با فرانت
+    async def get_all(self, filter: IncidentFilter) -> dict:
+        items, total = await self.incident_repo.get_all(status=filter.status, offset=filter.offset, limit=filter.limit)
+        for it in items:
+            it.update({"resolved": True if it.get("resolved_at") else False})
+
+        return {"items": items, "total": total}
 
 
     async def get_incident_by_id(self, incident_id: int) -> dict | None:
