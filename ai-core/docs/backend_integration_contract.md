@@ -62,7 +62,14 @@ the live API also returns presentation fields such as `match_level`, `title`,
   "incident": {
     "possible_incident": true,
     "severity": "high",
-    "matched_ticket_ids": [18, 22, 35, 41],
+    "matched_ticket_ids": [101, 18, 22, 35, 41],
+    "matched_tickets": [
+      {"ticket_id": 101, "similarity": 1.0},
+      {"ticket_id": 18, "similarity": 0.91},
+      {"ticket_id": 22, "similarity": 0.88},
+      {"ticket_id": 35, "similarity": 0.83},
+      {"ticket_id": 41, "similarity": 0.81}
+    ],
     "is_duplicate": true,
     "duplicate_incident_id": 7
   },

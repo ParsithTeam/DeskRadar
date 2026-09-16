@@ -158,7 +158,14 @@ The Backend communicates with AI Core through **one single endpoint (`POST /anal
       "severity": "high",
       "fa_title_incident": "رخداد احتمالی در سرویس VPN",
       "fa_reason_incident": "۴ تیکت مشابه با میانگین شباهت ۰.۸۶ در دسته VPN شناسایی شد.",
-      "matched_ticket_ids": [18, 22, 35, 41],
+      "matched_ticket_ids": [101, 18, 22, 35, 41],
+      "matched_tickets": [
+        {"ticket_id": 101, "similarity": 1.0},
+        {"ticket_id": 18, "similarity": 0.9124},
+        {"ticket_id": 22, "similarity": 0.8841},
+        {"ticket_id": 35, "similarity": 0.8320},
+        {"ticket_id": 41, "similarity": 0.8115}
+      ],
       "avg_similarity_score": 0.86,
       "is_duplicate": true,
       "duplicate_incident_id": 7
@@ -186,8 +193,8 @@ The Backend communicates with AI Core through **one single endpoint (`POST /anal
 2. **Intelligence Storage:** Store `intelligence.similar_tickets` and `intelligence.related_article` with the ticket record.
 3. **Incident Management:**
    - When `intelligence.incident.possible_incident == false`: Do not create an incident.
-   - When `is_duplicate == true`: Update the existing incident record (`duplicate_incident_id`), appending the new `matched_ticket_ids`.
-   - When `is_duplicate == false` and `possible_incident == true`: Create a new `Incident` in DB with `matched_ticket_ids`.
+   - When `is_duplicate == true`: Update the existing incident record (`duplicate_incident_id`), associating new `matched_tickets` / `matched_ticket_ids`.
+   - When `is_duplicate == false` and `possible_incident == true`: Create a new `Incident` in DB with `matched_tickets` (which contains `ticket_id` and `similarity`, including the current incoming ticket with similarity 1.0).
 4. **Resilience & Degraded Mode:**
    - If `status == "completed"`: Full success.
    - If `status == "partial"`: Save whatever succeeded (e.g. analysis succeeded even if similarity failed).
