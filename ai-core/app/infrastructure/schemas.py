@@ -118,12 +118,18 @@ class RelatedArticle(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class MatchedIncidentTicket(BaseModel):
+    ticket_id: int
+    similarity: float = Field(ge=0.0, le=1.0)
+
+
 class IncidentCandidate(BaseModel):
     possible_incident: bool
     severity: Literal["medium", "high"] | None = None
     fa_title_incident: str | None = None
     fa_reason_incident: str | None = None
     matched_ticket_ids: list[int] = Field(default_factory=list)
+    matched_tickets: list[MatchedIncidentTicket] = Field(default_factory=list)
     avg_similarity_score: float | None = Field(default=None, ge=0.0, le=1.0)
     is_duplicate: bool = False
     duplicate_incident_id: int | None = None  # Backend updates this incident when present

@@ -30,7 +30,7 @@ import logging
 from collections import Counter
 from typing import TYPE_CHECKING
 
-from .schemas import IncidentCandidate, OpenIncidentRecord
+from .schemas import IncidentCandidate, MatchedIncidentTicket, OpenIncidentRecord
 
 if TYPE_CHECKING:  # type-only; SimilarTicket is consumed via attribute access
     from .schemas import SimilarTicket
@@ -56,6 +56,7 @@ def detect_incident_candidate(
     category: str | None,
     config: dict,
     *,
+    query_ticket_id: int | None = None,
     open_incidents: list[OpenIncidentRecord] | None = None,
 ) -> IncidentCandidate:
     """
@@ -64,6 +65,9 @@ def detect_incident_candidate(
     similar_tickets : top similar tickets from similarity_search (passed in).
     category        : the query ticket's category (optional, from Analyzer).
     config          : full infrastructure config (or its "incident_detection" block).
+    query_ticket_id : the ID of the incoming/query ticket (optional). When provided,
+                      it is included in matched_tickets (with similarity=1.0) and in
+                      matched_ticket_ids so Backend receives the full incident ticket group.
     open_incidents : open incidents with their category and matched ticket IDs.
                      A candidate is a duplicate only if its cluster overlaps one
                      of these incidents in the same category.
@@ -94,6 +98,21 @@ def detect_incident_candidate(
         open_incidents,
     )
 
+    matched_tickets: list[MatchedIncidentTicket] = []
+    if query_ticket_id is not None:
+        query_id = int(query_ticket_id)
+        if query_id not in matched_ids:
+            matched_ids.insert(0, query_id)
+        matched_tickets.append(MatchedIncidentTicket(ticket_id=query_id, similarity=1.0))
+
+    for t in cluster:
+        matched_tickets.append(
+            MatchedIncidentTicket(
+                ticket_id=int(t.ticket_id),
+                similarity=round(float(t.similarity), 4),
+            )
+        )
+
     return IncidentCandidate(
         possible_incident=True,
         severity=severity,
@@ -103,6 +122,7 @@ def detect_incident_candidate(
             f"در دسته {label} شناسایی شد."
         ),
         matched_ticket_ids=matched_ids,
+        matched_tickets=matched_tickets,
         avg_similarity_score=avg_score,
         is_duplicate=duplicate_incident_id is not None,
         duplicate_incident_id=duplicate_incident_id,

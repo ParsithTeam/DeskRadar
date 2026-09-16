@@ -246,6 +246,7 @@ def run_infrastructure(request: InfrastructureRequest) -> InfrastructureResult:
             similar,
             request.category,
             config,
+            query_ticket_id=request.ticket_id,
             open_incidents=request.open_incidents,
         )
     except Exception as exc:  # noqa: BLE001
