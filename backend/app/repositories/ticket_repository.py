@@ -49,6 +49,14 @@ class TicketRepository:
             #TODO: پیاده سازی فیلتر جزئیات خروجی ai
         return None
 
+    async def get_tickets(self, ticket_ids= list[int]) -> list[dict]:
+        ticket_list = []
+        for T in FAKE_TICKETS_DB:
+            if T.get("ticket_id") in ticket_ids:
+                ticket_list.append(T)
+
+        return ticket_list
+
     
     async def save_new_ticket(self, title: str, 
                         description: str, 
@@ -70,11 +78,13 @@ class TicketRepository:
             "department": department or "None",
             "ticket_status": TicketStatus.OPEN,
             "analysis_status": analysis_status,
-            "source": "manual",
+            "source": "manual", #TODO: پیاده سازی این منطق
             "fingerprint": FINGER_PRINT,
             "created_at": datetime.now(tz=timezone.utc),
             "updated_at": datetime.now(tz=timezone.utc),
             "urgency": TicketUrgency.UNKNOWN,
+            "category": "unknown",
+            "category_label_fa": "نامشخص",
             "ai_analysis" : None
         }
 
@@ -91,7 +101,10 @@ class TicketRepository:
         for T in FAKE_TICKETS_DB:
             if T.get("ticket_id")== ticket_id:
                 T["ai_analysis"] = new_analysis_data
-                if new_analysis_data: T["urgency"] = new_analysis_data.get("urgency", TicketUrgency.UNKNOWN)
+                if new_analysis_data:
+                    T["urgency"] = new_analysis_data.get("urgency", TicketUrgency.UNKNOWN)
+                    T["category"] = new_analysis_data.get("category")
+                    T["category_label_fa"] = new_analysis_data.get("category_label_fa")
                 T["analysis_status"] = new_analysis_status
                 T["updated_at"] = datetime.now(tz=timezone.utc)
                 break

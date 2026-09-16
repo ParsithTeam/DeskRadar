@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status as http_status
 
 from app.repositories.incident_repository import IncidentRepository
+from app.repositories.ticket_repository import TicketRepository
 from app.services.alert_service import AlertService
 from app.schemas.incident import (
     IncidentCreate,
@@ -14,9 +15,10 @@ from app.schemas.alert import AlertCreate, AlertSeverity, AlertType
 
 
 class IncidentService:
-    def __init__(self, incident_repo: IncidentRepository, alert_serv: AlertService) -> None:
+    def __init__(self, incident_repo: IncidentRepository, alert_serv: AlertService, ticket_repo: TicketRepository) -> None:
         self.incident_repo = incident_repo
         self.alert_serv = alert_serv
+        self.ticket_repo = ticket_repo
 
     async def upsert_from_ai(self, ticket_id: int, category: str, intelligence_data: dict) -> dict | None:
         """
@@ -82,10 +84,33 @@ class IncidentService:
 
     async def get_all_incidents(self, status: IncidentStatus | None = None) -> list[dict]:
         return await self.incident_repo.get_all(status)
+        #TODO: اینجا باید لیستی از ایتم لیست های رخداد ارسال بشه. نیاز به هماهنگی با فرانت
 
 
     async def get_incident_by_id(self, incident_id: int) -> dict | None:
-        return await self.incident_repo.get_by_id(incident_id)
+        incident = await self.incident_repo.get_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail= f"Incident {incident_id} not found")
+
+        matched_ticket_ids = incident.get("matched_ticket_ids", [])
+        if len(matched_ticket_ids) == 0:
+            print(f"Incident {incident_id} has no matching tickets!")
+            #TODO: قرار دادن منطق حذف رخداد یا چیز دیگه ای
+        tickets_data = await self.ticket_repo.get_tickets(ticket_ids=matched_ticket_ids)
+        enriched_tickets = []
+        for t in tickets_data:
+            enriched_tickets.append({
+                "ticket_id": t.get("ticket_id"),
+                "title": t.get("title"),
+                "category": t.get("category"),
+                "category_label_fa": t.get("category_label_fa"),
+                #TODO: نیاز به اضافه کردن این بخش در پاسخ تحلیل ai core
+                "similarity": incident.get("ticket_similarities", {}).get(t.get("ticket_id"), 0.0)
+            })
+
+        response_payload = {**incident, "tickets": enriched_tickets, "ticket_count": len(enriched_tickets)}
+        return response_payload
+
 
 
     async def update_status(self, incident_id: int, new_status: IncidentStatus):

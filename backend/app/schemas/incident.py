@@ -14,6 +14,16 @@ class SeverityLevel(str, Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
+class IncidentMatchedTicket(BaseModel):
+    """
+    اسکیما لازم برای تیکت های مرتبط در یک رخداد
+    """
+    ticket_id: int
+    title: str
+    category: str
+    category_label_fa: str
+    similarity: float = Field(ge=0.0, le=0.0, description="Similarity Score calculated by AI")
+
 class IncidentBase(BaseModel):
     title_fa: str
     reason_fa: str
@@ -49,7 +59,7 @@ class IncidentResponse(IncidentBase):
     #Guid: اسکیمای نهایی ارسال شده به فرانت
     id: int
     ticket_count: int
-    matched_ticket_ids: list[int] = Field(default_factory=list)
+    tickets: list[IncidentMatchedTicket] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None = None
