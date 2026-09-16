@@ -13,10 +13,11 @@ router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
 #---------------وابستگی های اولیه برای صرفا تست------------
 alert_repo = AlertRepository()
+ticket_repo = TicketRepository()
 alert_serv = AlertService(alert_repo=alert_repo)
 
 incident_repo = IncidentRepository()
-incident_serv = IncidentService(incident_repo, alert_serv)
+incident_serv = IncidentService(incident_repo, alert_serv, ticket_repo)
 
 ticket_repo = TicketRepository()
 analysis_serv = AnalysisService()
@@ -51,14 +52,15 @@ async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: Ba
 @router.get("/", response_model=TicketList, status_code=status.HTTP_200_OK)
 async def list_user_tickets(
         current_user:str,   # current_user = Depends(get_current_user),  # بعد از پیاده‌سازی Auth
+        ticket_status: TicketStatus | None = Query(None),
         limit: int = Query(20, ge=1, le=100),
         offset: int = Query(0, ge=0)
 ):
     """لیست تیکت‌های کاربر لاگین‌شده با حداقل جزئیات"""
+    filters = TicketFilterParams(ticket_status=ticket_status, limit=limit, offset=offset)
     return await ticket_service.get_user_tickets(
         requester=current_user,
-        limit=limit,
-        offset=offset
+        filters=filters
     )
 
 # --- اندپوینت کنسول ادمین ---
