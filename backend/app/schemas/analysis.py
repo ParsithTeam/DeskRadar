@@ -3,6 +3,9 @@ from enum import Enum
 
 from pydantic import BaseModel,Field
 
+from app.schemas.incident import MatchedTicket
+
+
 class SimilarTicket(BaseModel):
     ticket_id: int
     similarity: float = Field(gt=0.0, le=1.0, description="Similarity Score in range of [0.0,1.0]")
@@ -23,6 +26,7 @@ class IncidentInfo(BaseModel):
     fa_title_incident: str
     fa_reason_incident: str
     matched_ticket_ids: list[int] = []
+    matched_tickets: list[MatchedTicket]
     avg_similarity_score: float
     is_duplicate: bool = False
     duplicate_incident_id: int | None = None

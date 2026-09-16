@@ -9,7 +9,7 @@ from app.schemas.incident import (
     IncidentCreate,
     IncidentUpdate,
     IncidentStatus,
-    SeverityLevel
+    IncidentSeverity
 )
 from app.schemas.alert import AlertCreate, AlertSeverity, AlertType
 
@@ -36,27 +36,36 @@ class IncidentService:
         incident_out: dict | None = None
 
         try:
-            severity = SeverityLevel(raw_severity)
+            severity = IncidentSeverity(raw_severity)
         except ValueError:
-            severity = SeverityLevel.MEDIUM
+            severity = IncidentSeverity.MEDIUM
             print(f"Unknown severity: {raw_severity}")
 
-        matched_ticket_ids = list(incident_info.get("matched_ticket_ids", []))
+        matched_tickets = list(incident_info.get("matched_tickets", []))
+        if len(matched_tickets) == 0:
+            print("Probebly bad request format..!")
+        try:
+            matched_ticket_ids = self._matched_ticket_parser(matched_tickets)
+        except Exception as e:
+            print("Unable to parse incident matched tickets!")
+            matched_ticket_ids = []
+
         if ticket_id not in matched_ticket_ids:
-            matched_ticket_ids.append(ticket_id)
+            matched_tickets.append({"ticket_id": ticket_id, "similarity": 0.2})
+            print(f"Ticket {ticket_id} was not include in it's own incident!")
 
         if is_duplicate and duplicate_id:
             existing_incident = await self.incident_repo.get_by_id(duplicate_id)
             if existing_incident:
                 old_severity = existing_incident.get("severity")
                 update_data = IncidentUpdate(
-                    new_ticket_ids=matched_ticket_ids,
+                    new_tickets=matched_tickets,
                     severity=severity,
                 )
 
                 incident_out = await self.incident_repo.update(incident_id=duplicate_id, update_data=update_data)
 
-                if old_severity!=severity and severity in [SeverityLevel.HIGH, SeverityLevel.CRITICAL]:
+                if old_severity!=severity and severity in [IncidentSeverity.HIGH, IncidentSeverity.CRITICAL]:
                     send_alert = True
         else:
             new_incident_data = IncidentCreate(
@@ -64,23 +73,34 @@ class IncidentService:
                 reason_fa=incident_info.get("fa_reason_incident", "تعداد قابل توجهی تیکت هم‌پوشان شناسایی شد."),
                 severity=severity,
                 status=IncidentStatus.CANDIDATE,
-                matched_ticket_ids=matched_ticket_ids
+                matched_tickets= matched_tickets
             )
 
             incident_out = await self.incident_repo.create(new_incident_data)
-            if severity in [SeverityLevel.HIGH, SeverityLevel.CRITICAL]:
+            if severity in [IncidentSeverity.HIGH, IncidentSeverity.CRITICAL]:
                 send_alert = True
         #بخش ارسال هشدار در صورت نیاز
         if send_alert and incident_out:
             new_alert = AlertCreate(
                 type= AlertType.INCIDENT_CANDIDATE,
                 message= "یک رخداد جدید شناسایی شد" if not is_duplicate else "یک رخداد به سطح هشدار رسید",
-                severity= AlertSeverity.CRITICAL if severity == SeverityLevel.CRITICAL else AlertSeverity.WARNING,
+                severity= AlertSeverity.CRITICAL if severity == IncidentSeverity.CRITICAL else AlertSeverity.WARNING,
                 incident_id= incident_out.get("id")
             )
             await self.alert_serv.create_and_broadcast(new_alert)
 
         return incident_out
+
+    def _matched_ticket_parser(self, data: list[dict]) -> tuple[list[int], dict[int, float] ]:
+        matched_ticket_ids = []
+        matched_tickets: dict[int, float] = {}
+        for t in data:
+            if "ticket_id" in t and "similarity" in t:
+                matched_ticket_ids.append(t["ticket_id"])
+                matched_tickets[t["ticket_id"]] = t["similarity"]
+
+        return matched_ticket_ids, matched_tickets
+
 
     async def get_all_incidents(self, status: IncidentStatus | None = None) -> list[dict]:
         return await self.incident_repo.get_all(status)
@@ -92,7 +112,7 @@ class IncidentService:
         if not incident:
             raise HTTPException(status_code=404, detail= f"Incident {incident_id} not found")
 
-        matched_ticket_ids = incident.get("matched_ticket_ids", [])
+        matched_ticket_ids, matched_ticket_similarities = self._matched_ticket_parser(incident.get("matched_tickets", []))
         if len(matched_ticket_ids) == 0:
             print(f"Incident {incident_id} has no matching tickets!")
             #TODO: قرار دادن منطق حذف رخداد یا چیز دیگه ای
@@ -104,8 +124,7 @@ class IncidentService:
                 "title": t.get("title"),
                 "category": t.get("category"),
                 "category_label_fa": t.get("category_label_fa"),
-                #TODO: نیاز به اضافه کردن این بخش در پاسخ تحلیل ai core
-                "similarity": incident.get("ticket_similarities", {}).get(t.get("ticket_id"), 0.0)
+                "similarity": matched_ticket_similarities[t.get("ticket_id")],
             })
 
         response_payload = {**incident, "tickets": enriched_tickets, "ticket_count": len(enriched_tickets)}

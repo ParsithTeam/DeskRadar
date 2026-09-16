@@ -8,32 +8,34 @@ class IncidentStatus(str, Enum):
     RESOLVED = "resolved"
     DISMISSED = "dismissed"
 
-class SeverityLevel(str, Enum):
+class IncidentSeverity(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
-class IncidentMatchedTicket(BaseModel):
+class MatchedTicket(BaseModel):
+    ticket_id: int
+    similarity: float = Field(ge=0.0, le=1.0)
+
+class IncidentMatchedTicket(MatchedTicket):
     """
     اسکیما لازم برای تیکت های مرتبط در یک رخداد
     """
-    ticket_id: int
     title: str
     category: str
     category_label_fa: str
-    similarity: float = Field(ge=0.0, le=0.0, description="Similarity Score calculated by AI")
 
 class IncidentBase(BaseModel):
     title_fa: str
     reason_fa: str
-    severity: SeverityLevel
+    severity: IncidentSeverity
     status: IncidentStatus = IncidentStatus.CANDIDATE
 
 #------Output/Input Incident Schema-----
 class IncidentCreate(IncidentBase):
     #Guide: اسکیمایی که توسط سرویس-رخداد استفاده میشه
-    matched_ticket_ids: list[int] = Field(default_factory=list)
+    matched_tickets: list[MatchedTicket] = Field(default_factory=list)
     #avg_similarity_score = float | None = None
 
 class IncidentUpdate(BaseModel):
@@ -43,9 +45,9 @@ class IncidentUpdate(BaseModel):
     """
     title_fa: str | None = None
     reason_fa: str | None = None
-    severity: SeverityLevel | None = None
+    severity: IncidentSeverity | None = None
     status: IncidentStatus | None = None
-    new_ticket_ids: list[int] | None = None
+    new_tickets: list[MatchedTicket] | None = None
     resolved_at: datetime | None = None
     #avg_similarity_score: Optional[float] = None
 

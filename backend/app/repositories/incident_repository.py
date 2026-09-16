@@ -28,7 +28,7 @@ class IncidentRepository:
         new_incident = incident_in.model_dump()
         new_incident.update({
             "id": INCIDENT_ID_COUNTER,
-            "ticket_count": len(incident_in.matched_ticket_ids),
+            "ticket_count": len(incident_in.matched_tickets),
             "created_at": now,
             "updated_at": now,
             "resolved_at": None
@@ -39,26 +39,35 @@ class IncidentRepository:
         return new_incident
 
     async def update(self, incident_id: int, update_data: IncidentUpdate) -> dict | None:
-
         incident = await self.get_by_id(incident_id)
         if not incident:
             return None
 
-        # استخراج داده‌های جدید
         update_dict = update_data.model_dump(exclude_unset=True)
 
-        # مدیریت منطق اتصال تیکت‌های جدید به رخداد فعلی
-        if "new_ticket_ids" in update_dict:
-            new_ids = update_dict.pop("new_ticket_ids")
-            if new_ids:
-                current_ids = set(incident["matched_ticket_ids"])
+        if "new_tickets" in update_dict:
+            new_tickets = update_dict.pop("new_tickets")
+            if new_tickets:
+                # استخراج فقط ticket_id ها از دیکشنری‌ها
+                current_ids = {
+                    t["ticket_id"] if isinstance(t, dict) else t
+                    for t in incident["matched_tickets"]
+                }
+                # new_tickets هم ممکنه دیکشنری یا int باشه
+                new_ids = {
+                    t["ticket_id"] if isinstance(t, dict) else t
+                    for t in new_tickets
+                }
                 current_ids.update(new_ids)
-                incident["matched_ticket_ids"] = list(current_ids)
-                incident["ticket_count"] = len(incident["matched_ticket_ids"])
 
-        # آپدیت سایر فیلدها (مثل تغییر وضعیت یا تغییر شدت)
+                # اگه می‌خوای ساختار دیکشنری حفظ بشه، باید similarity رو هم مدیریت کنی
+                incident["matched_tickets"] = [
+                    {"ticket_id": tid} for tid in current_ids
+                ]
+                incident["ticket_count"] = len(incident["matched_tickets"])
+
         for key, value in update_dict.items():
-            if key != "new_ticket_ids":
+            if key != "matched_tickets":
                 incident[key] = value
 
         incident["updated_at"] = datetime.now(timezone.utc)
