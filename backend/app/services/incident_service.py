@@ -1,7 +1,7 @@
+import asyncio
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status as http_status
-from sqlalchemy import true, false
 
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.ticket_repository import TicketRepository
@@ -10,9 +10,9 @@ from app.schemas.incident import (
     IncidentCreate,
     IncidentUpdate,
     IncidentStatus,
-    IncidentSeverity, IncidentFilter
+    IncidentSeverity, IncidentFilter, IncidentStatusUpdate
 )
-from app.schemas.alert import AlertCreate, AlertSeverity, AlertType
+from app.schemas.alert import AlertSeverity, AlertType, AlertCreate
 
 
 class IncidentService:
@@ -57,8 +57,9 @@ class IncidentService:
 
         if is_duplicate and duplicate_id:
             existing_incident = await self.incident_repo.get_by_id(duplicate_id)
+
             if existing_incident:
-                old_severity = existing_incident.get("severity")
+                old_severity = IncidentSeverity.normalize(existing_incident.get("severity"))
                 update_data = IncidentUpdate(
                     new_tickets=matched_tickets,
                     severity=severity,
@@ -78,19 +79,33 @@ class IncidentService:
             )
 
             incident_out = await self.incident_repo.create(new_incident_data)
+            #TODO: کامیت بعد از اتصال دیتابیس
+            #await self.incident_repo.commit()
+
             if severity in [IncidentSeverity.HIGH, IncidentSeverity.CRITICAL]:
                 send_alert = True
         #بخش ارسال هشدار در صورت نیاز
         if send_alert and incident_out:
-            new_alert = AlertCreate(
-                type= AlertType.INCIDENT_CANDIDATE,
-                message= "یک رخداد جدید شناسایی شد" if not is_duplicate else "یک رخداد به سطح هشدار رسید",
-                severity= AlertSeverity.CRITICAL if severity == IncidentSeverity.CRITICAL else AlertSeverity.WARNING,
-                incident_id= incident_out.get("id")
-            )
-            await self.alert_serv.create_and_broadcast(new_alert)
+            await self._dispatch_alert(incident=incident_out, severity=severity, is_duplicate=is_duplicate)
 
         return incident_out
+
+    async def _dispatch_alert(self, incident: dict, severity:IncidentSeverity, is_duplicate:bool):
+        """ارسال alert بعد از commit؛ شکست آن incident را از بین نمی‌برد."""
+        new_alert = AlertCreate(
+            type=AlertType.INCIDENT_CANDIDATE,
+            message="یک رخداد جدید شناسایی شد" if not is_duplicate else "یک رخداد به سطح هشدار رسید",
+            severity=AlertSeverity.CRITICAL if severity == IncidentSeverity.CRITICAL else AlertSeverity.WARNING,
+            incident_id=incident.get("id"),
+            idempotency_key= f"incident-{incident['id']}-{severity.value}"
+        )
+        try:
+            await asyncio.wait_for(
+                self.alert_serv.create_and_broadcast(new_alert),
+                timeout=5.0,
+            )
+        except Exception as e:
+            print(f"fail to broadcast alert: {new_alert.model_dump()}. Error: {str(e)}")
 
     def _matched_ticket_parser(self, data: list[dict]) -> tuple[list[int], dict[int, float] ]:
         matched_ticket_ids = []
@@ -136,21 +151,21 @@ class IncidentService:
 
 
 
-    async def update_status(self, incident_id: int, new_status: IncidentStatus):
+    async def update_status(self, incident_id: int, payload: IncidentStatusUpdate):
         incident = await self.incident_repo.get_by_id(incident_id)
         if not incident:
             raise HTTPException(status_code=404, detail= f"Incident {incident_id} not found")
 
-        current_status= incident.get("status", IncidentStatus.CONFIRMED)
+        current_status= IncidentStatus.normalize(incident.get("status", IncidentStatus.CONFIRMED))
         if self._is_incident_terminated(current_status):
             raise HTTPException(status_code= http_status.Http_400, detail= f"Incident {incident_id} already terminated")
 
-        if current_status == new_status:
+        if current_status == payload.status:
             return incident
 
         update_data = IncidentUpdate(
-            status=new_status,
-            resolved_at= datetime.now(timezone.utc) if new_status == IncidentStatus.RESOLVED else None,
+            status=payload.status,
+            resolved_at= datetime.now(timezone.utc) if payload.status == IncidentStatus.RESOLVED else None,
         )
         return await self.incident_repo.update(incident_id=incident_id, update_data=update_data)
 

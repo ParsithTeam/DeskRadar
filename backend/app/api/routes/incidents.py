@@ -52,6 +52,6 @@ async def get_incident_detail(incident_id: int):
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Incident not found")
     return incident
 
-@router.patch("/{incident_id}/satus", response_model=IncidentResponse, status_code=http_status.HTTP_200_OK)
+@router.patch("/{incident_id}/status", response_model=IncidentResponse, status_code=http_status.HTTP_200_OK)
 async def update_incident_status(incident_id: int, payload: IncidentStatusUpdate):
-    return await incident_service.update_incident_status(incident_id, payload.status)
+    return await incident_service.update_status(incident_id, payload)

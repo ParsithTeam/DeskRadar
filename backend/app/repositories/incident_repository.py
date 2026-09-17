@@ -53,21 +53,27 @@ class IncidentRepository:
         if "new_tickets" in update_dict:
             new_tickets = update_dict.pop("new_tickets")
             if new_tickets:
-                # استخراج فقط ticket_id ها از دیکشنری‌ها
-                current_ids = {
-                    t["ticket_id"] if isinstance(t, dict) else t
+                # دیکشنری از ticket_id → similarity از تیکت‌های فعلی
+                existing_map = {
+                    t["ticket_id"]: t["similarity"]
                     for t in incident["matched_tickets"]
+                    if isinstance(t, dict) and "similarity" in t
                 }
-                # new_tickets هم ممکنه دیکشنری یا int باشه
-                new_ids = {
-                    t["ticket_id"] if isinstance(t, dict) else t
-                    for t in new_tickets
-                }
-                current_ids.update(new_ids)
 
-                # اگه می‌خوای ساختار دیکشنری حفظ بشه، باید similarity رو هم مدیریت کنی
+                # دیکشنری از ticket_id → similarity از تیکت‌های جدید
+                new_map = {
+                    t["ticket_id"]: t["similarity"]
+                    for t in new_tickets
+                    if isinstance(t, dict) and "similarity" in t
+                }
+
+                # merge: تیکت‌های جدید تیکت‌های قبلی را بازنویسی می‌کنند
+                merged = {**existing_map, **new_map}
+
+                # اختیاری: مرتب‌سازی نزولی بر اساس similarity
                 incident["matched_tickets"] = [
-                    {"ticket_id": tid} for tid in current_ids
+                    {"ticket_id": tid, "similarity": sim}
+                    for tid, sim in sorted(merged.items(), key=lambda x: -x[1])
                 ]
                 incident["ticket_count"] = len(incident["matched_tickets"])
 
