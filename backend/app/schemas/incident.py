@@ -1,3 +1,5 @@
+import string
+
 from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 from  datetime import datetime
@@ -8,11 +10,34 @@ class IncidentStatus(str, Enum):
     RESOLVED = "resolved"
     DISMISSED = "dismissed"
 
+    @classmethod
+    def normalize(cls, value) -> "IncidentStatus":
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value.lower())
+            except ValueError:
+                return IncidentStatus.DISMISSED
+        return IncidentStatus.DISMISSED
+
+
 class IncidentSeverity(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
+    @classmethod
+    def normalize(cls, value) -> "IncidentSeverity":
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value.lower())
+            except ValueError:
+                return cls.LOW
+        return cls.LOW
 
 class MatchedTicket(BaseModel):
     ticket_id: int
