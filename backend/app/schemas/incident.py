@@ -1,3 +1,5 @@
+import string
+
 from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 from  datetime import datetime
@@ -8,22 +10,57 @@ class IncidentStatus(str, Enum):
     RESOLVED = "resolved"
     DISMISSED = "dismissed"
 
-class SeverityLevel(str, Enum):
+    @classmethod
+    def normalize(cls, value) -> "IncidentStatus":
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value.lower())
+            except ValueError:
+                return IncidentStatus.DISMISSED
+        return IncidentStatus.DISMISSED
+
+
+class IncidentSeverity(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
+    @classmethod
+    def normalize(cls, value) -> "IncidentSeverity":
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value.lower())
+            except ValueError:
+                return cls.LOW
+        return cls.LOW
+
+class MatchedTicket(BaseModel):
+    ticket_id: int
+    similarity: float = Field(ge=0.0, le=1.0)
+
+class IncidentMatchedTicket(MatchedTicket):
+    """
+    اسکیما لازم برای تیکت های مرتبط در یک رخداد
+    """
+    title: str
+    category: str
+    category_label_fa: str
+
 class IncidentBase(BaseModel):
     title_fa: str
     reason_fa: str
-    severity: SeverityLevel
+    severity: IncidentSeverity
     status: IncidentStatus = IncidentStatus.CANDIDATE
 
 #------Output/Input Incident Schema-----
 class IncidentCreate(IncidentBase):
     #Guide: اسکیمایی که توسط سرویس-رخداد استفاده میشه
-    matched_ticket_ids: list[int] = Field(default_factory=list)
+    matched_tickets: list[MatchedTicket] = Field(default_factory=list)
     #avg_similarity_score = float | None = None
 
 class IncidentUpdate(BaseModel):
@@ -33,9 +70,9 @@ class IncidentUpdate(BaseModel):
     """
     title_fa: str | None = None
     reason_fa: str | None = None
-    severity: SeverityLevel | None = None
+    severity: IncidentSeverity | None = None
     status: IncidentStatus | None = None
-    new_ticket_ids: list[int] | None = None
+    new_tickets: list[MatchedTicket] | None = None
     resolved_at: datetime | None = None
     #avg_similarity_score: Optional[float] = None
 
@@ -49,7 +86,7 @@ class IncidentResponse(IncidentBase):
     #Guid: اسکیمای نهایی ارسال شده به فرانت
     id: int
     ticket_count: int
-    matched_ticket_ids: list[int] = Field(default_factory=list)
+    tickets: list[IncidentMatchedTicket] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None = None
@@ -58,3 +95,21 @@ class IncidentResponse(IncidentBase):
 
     # این تنظیم جایگزین class Config: orm_mode = True در Pydantic v2 است
     model_config = ConfigDict(from_attributes=True)
+
+class IncidentListItem(BaseModel):
+    title_fa: str
+    severity: IncidentSeverity
+    status: IncidentStatus
+    updated_at: datetime
+    resolved: bool = False
+
+class IncidentList(BaseModel):
+    items: list[IncidentListItem] = Field(default_factory=list)
+    total: int
+
+#------------------- Filters ---------------------
+class IncidentFilter(BaseModel):
+    status: IncidentStatus | None
+
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1)

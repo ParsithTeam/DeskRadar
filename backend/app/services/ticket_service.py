@@ -201,14 +201,15 @@ class TicketService:
     async def get_user_tickets(
             self,
             requester: str,
-            limit: int = 20,
-            offset: int = 0
+            filters: TicketFilterParams
     ) -> dict:
         """
         واکشی تیکت‌های کاربر جاری:
         اجبار فیلتر بر اساس نام/آیدی کاربر تا داده دیگران لو نرود.
         """
-        filter_query = TicketQuery(requester=requester, limit=limit, offset=offset)
+        filter_query = TicketQuery(**filters.model_dump(exclude_unset=True))
+        filter_query.requester = requester
+
         items, total = await self.ticket_repo.get_all(query=filter_query)
         return {"items": items, "total": total}
 
@@ -217,6 +218,7 @@ class TicketService:
             filters: TicketFilterParams,
     ) -> dict:
         filter_query = TicketQuery(**filters.model_dump(exclude_unset=True))
+
         items, total = await self.ticket_repo.get_all(query=filter_query)
         return {"items": items, "total": total}
 

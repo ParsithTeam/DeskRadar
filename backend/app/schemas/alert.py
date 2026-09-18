@@ -30,13 +30,23 @@ class AlertCreate(BaseModel):
     title: str | None = None
     ticket_id: int | None = None
     incident_id: int | None = None
+    idempotency_key: str
 
 
-class AlertResponse(AlertCreate):
+class AlertResponse(BaseModel):
+    type: AlertType
+    message: str
+    severity: AlertSeverity = AlertSeverity.WARNING
+    title: str | None = None
+    ticket_id: int | None = None
+    incident_id: int | None = None
+
     id: int = Field(default=0, description="شناسه اصلی هشدار")
     alert_id: int | None = Field(default=None, description="شناسه معادل جهت سازگاری با فرانت")
+
     is_read: bool = Field(default=False, description="وضعیت خوانده‌شده")
     read: bool = Field(default=False, description="فلگ معادل خوانده‌شده برای فرانت")
+
     assigned_admin_id: str | None = Field(default=None, description="شناسه ادمین مسئول")
     assigned_admin_name: str | None = Field(default=None, description="نام ادمین مسئول")
     created_at: datetime
