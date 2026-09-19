@@ -142,3 +142,25 @@ class TicketRepository:
 
         return results[offset: offset + limit], total
 
+    async def mark_as_pending(self, ticket_id: int)-> bool:
+        """به صورت اتمیک وضعیت را به PENDING تغییر می‌دهد.
+        اگر وضعیت قبلاً PENDING بود، False برمی‌گرداند."""
+        #TODO: بعد از پیاده سازی واقعی دیتابیس
+        # stmt = (
+        #     update(TicketModel)
+        #     .where(TicketModel.id == ticket_id)
+        #     .where(TicketModel.analysis_status != AnalysisStatus.PENDING)
+        #     .values(
+        #         analysis_status=AnalysisStatus.PENDING,
+        #         updated_at=func.now(),
+        #     )
+        # )
+        # result = await self.session.execute(stmt)
+        # await self.session.commit()
+        # return result.rowcount == 1
+        for T in FAKE_TICKETS_DB:
+            if T.get("ticket_id") == ticket_id and T.get("analysis_status") != AnalysisStatus.PENDING:
+                T["analysis_status"] = AnalysisStatus.PENDING
+                return True
+        return False
+

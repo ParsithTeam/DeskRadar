@@ -66,7 +66,8 @@ class TicketService:
         
         try:
             ticket, is_valid = await self._fetch_and_validate_ticket(ticket_id)
-            if not is_valid: return
+            if not is_valid:
+                raise Exception(f"Ticket {ticket_id} is not valid or not found")
 
             #ااستخراج فیلد های لازم برای ارسال به ai core
             context = await self._gather_ai_context()
@@ -87,7 +88,8 @@ class TicketService:
             await self.ticket_repo.update_ticket_analysis(ticket_id=ticket_id,
                                                    new_analysis_status= AnalysisStatus.COMPLETED,
                                                    new_analysis_data= analysis_data )
-            
+
+            #await self.ticket_repo.commit() بعد از اضافه شدن دیتا بیس
             print(f"Updating analysis for ticket id: {ticket_id} completed.")
 
         except Exception as e:
@@ -107,10 +109,6 @@ class TicketService:
                 )
 
         except Exception as e:
-            await self.ticket_repo.update_ticket_analysis(
-                ticket_id=ticket_id,
-                new_analysis_status=AnalysisStatus.FAILED
-            )
             print(f"Failed to upsert in incident service for ticket: {ticket_id}: {str(e)}")
 
     #---------- helper methods for process_ticket_analyze ----------
@@ -124,7 +122,7 @@ class TicketService:
         description = ticket.get("description", "").strip()
 
         if not title or not description:
-            raise Exception(f"Invalid text content for ticket id: {ticket_id}. Aborting.")
+            return None, False
 
         return ticket, True
 
@@ -156,20 +154,25 @@ class TicketService:
                 detail=f"Ticket {ticket_id} not found."
             )
 
-        #بررسی وضعیت تحلیل فعلی تیکت برای جلوگیری از تحلیل همزمان
-        if ticket.get("analysis_status") == AnalysisStatus.PENDING:
+        #بررسی و آپدیت اتمیک وضعیت تحلیل به PENDING
+        acquired = await self.ticket_repo.mark_as_pending(ticket_id=ticket_id)
+        if not acquired:
             raise HTTPException(
                 status_code=http_status.HTTP_409_CONFLICT,
                 detail=f"Ticket {ticket_id} already has been in progress."
             )
 
-        await self.ticket_repo.update_ticket_analysis(ticket_id=ticket_id,
-                                                      new_analysis_status=AnalysisStatus.PENDING)
         #اضافه کردن تسک پس زمینه
         background_task.add_task(self.process_ticket_analyze, ticket_id=ticket_id)
-        #TODO: ین بخش بعدا یک شی از نوع آیتم نمایشی در لیست برگردونه
-        return {"analysis_status":AnalysisStatus.PENDING, "ticket_status": TicketStatus.OPEN, ticket_id:ticket_id}
 
+        #TODO: خروجی این اسکما این بخش باید با فرانت چک بشه
+        ticket = await self.ticket_repo.get_ticket(query= TicketQuery(ticket_id=ticket_id))
+        if not ticket:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=f"Ticket {ticket_id} not found."
+            )
+        return ticket
 
 
     async def get_ticket_by_id(self, ticket_id: int ) -> dict | None:
