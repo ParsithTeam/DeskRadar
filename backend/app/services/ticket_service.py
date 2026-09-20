@@ -45,17 +45,21 @@ class TicketService:
             description=description,
             requester=requester,
             department=department,
-
-            analysis_status= AnalysisStatus.PENDING if auto_analyze else AnalysisStatus.WAITING
+            analysis_status= AnalysisStatus.WAITING
         )
 
         #ایجاد تسک در پس زمنیه برای ثبت خودکار خروجی تحلیل بخش 
         #Ai Core
         if auto_analyze:
-            background_tasks.add_task(
-                self.process_ticket_analyze,
-                ticket_id=created_ticket["ticket_id"],
-            )
+            acquired = await self.ticket_repo.mark_as_pending(ticket_id=created_ticket["ticket_id"])
+            if acquired:
+                background_tasks.add_task(
+                    self.process_ticket_analyze,
+                    ticket_id=created_ticket["ticket_id"],
+                )
+            else:
+                print(f"Auto-analysis skipped for ticket {created_ticket["ticket_id"]} analysis already in progress")
+            created_ticket["analysis_status"] = AnalysisStatus.PENDING
 
         return created_ticket
 
