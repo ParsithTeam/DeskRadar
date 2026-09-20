@@ -1,9 +1,12 @@
 from typing import Tuple
 
+from starlette import status
+
 from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketFilterParams
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
+from app.exceptions.ticket_exceptions import DuplicateTicketError, TicketPersistenceError
 from fastapi import BackgroundTasks, HTTPException, status as http_status
 
 from app.services.incident_service import IncidentService
@@ -28,25 +31,31 @@ class TicketService:
         background_tasks: BackgroundTasks,
         auto_analyze: bool = True
     ) -> dict:
-        
-        already_exist = await self.ticket_repo.is_already_exist(title=title, description=description, requester=requester)
-        
-        if already_exist:
+
+
+        try:
+            #ذخیره اولیه تیکت با وضعیت های:
+            #ticket status: OPEN
+            #analysis status: WAITING
+            #ثبت و بررسی تکراری بودن تیکت باید اتکمیک انجام بشه در دیتابیس
+            created_ticket = await self.ticket_repo.save_new_ticket(
+                title=title,
+                description=description,
+                requester=requester,
+                department=department,
+                analysis_status= AnalysisStatus.WAITING
+            )
+        except DuplicateTicketError:
             raise HTTPException(
-                status_code= http_status.HTTP_400_BAD_REQUEST,
-                detail= "Ticket has already been submitted and it is in progress."
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail=f"Ticket with title {title} already exists"
+            )
+        except TicketPersistenceError:
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to submit your ticket. Please try again later."
             )
 
-        #ذخیره اولیه تیکت با وضعیت های:
-        #ticket status: OPEN
-        #analysis status: WAITING
-        created_ticket = await self.ticket_repo.save_new_ticket(
-            title=title,
-            description=description,
-            requester=requester,
-            department=department,
-            analysis_status= AnalysisStatus.WAITING
-        )
 
         #ایجاد تسک در پس زمنیه برای ثبت خودکار خروجی تحلیل بخش 
         #Ai Core

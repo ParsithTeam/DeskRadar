@@ -92,6 +92,34 @@ class TicketRepository:
         FAKE_TICKETS_DB.append(new_ticket)
 
         return new_ticket
+    #TODO: نسخه اصلی متد ذخیره سازی بعد از اتصال دیتابیس
+    #------------------
+    # async def save_new_ticket(self, ...):
+    #     fingerprint = self._generate_fingerprint(title, description, requester)
+    #     new_ticket = TicketModel(
+    #         title=title,
+    #         description=description,
+    #         requester=requester,
+    #         department=department,
+    #         analysis_status=analysis_status,
+    #         fingerprint=fingerprint,
+    #     )
+    #     self.session.add(new_ticket)
+    #     try:
+    #         await self.session.flush()
+    #     except IntegrityError as e:
+    #         await self.session.rollback()
+    #         if self._is_unique_violation(e):
+    #             raise DuplicateTicketError() from e
+    #         raise TicketPersistenceError() from e
+    #     except SQLAlchemyError as e:
+    #         await self.session.rollback()
+    #         raise TicketPersistenceError() from e
+    #     return self._to_dict(new_ticket)
+    #
+    # def _is_unique_violation(self, exc: IntegrityError) -> bool:
+    #     msg = str(exc.orig).lower()
+    #     return "unique" in msg or "duplicate" in msg
     
     async def update_ticket_analysis(self, 
                               ticket_id: int, 
