@@ -3,13 +3,33 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, CalendarDays, UserRound } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAppData } from "@/lib/app-context";
-import { EmptyState } from "@/components/loading-state";
+import LoadingSkeleton, { EmptyState } from "@/components/loading-state";
 
 export default function ArticleDetailPage() {
   const params = useParams<{ id: string }>();
-  const { articles } = useAppData();
-  const article = articles.find((item) => item.id === Number(params.id));
+  const { articles, loadArticle } = useAppData();
+  const articleId = Number(params.id);
+  const article = articles.find((item) => item.id === articleId);
+  const [loadingDetail, setLoadingDetail] = useState(Number.isFinite(articleId));
+
+  useEffect(() => {
+    let active = true;
+    if (!Number.isFinite(articleId)) return;
+    void loadArticle(articleId)
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setLoadingDetail(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [articleId, loadArticle]);
+
+  if (loadingDetail && (!article || !article.content)) {
+    return <LoadingSkeleton />;
+  }
 
   if (!article) {
     return (

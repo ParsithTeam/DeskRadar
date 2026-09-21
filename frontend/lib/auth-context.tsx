@@ -23,6 +23,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const CURRENT_USER_KEY = "deskradar_user_v2";
 
+function readSavedUser(): User | null {
+  try {
+    const savedUser = window.localStorage?.getItem(CURRENT_USER_KEY);
+    if (!savedUser) return null;
+    const parsed = JSON.parse(savedUser) as User;
+    return parsed.id && parsed.email && parsed.role ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistUser(user: User | null) {
+  try {
+    if (user) {
+      window.localStorage?.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    } else {
+      window.localStorage?.removeItem(CURRENT_USER_KEY);
+    }
+  } catch {
+    // Authentication still works for the current tab when storage is unavailable.
+  }
+}
+
 const temporaryAccounts: Account[] = [
   {
     id: "admin-1",
@@ -47,17 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const savedUser = window.localStorage.getItem(CURRENT_USER_KEY);
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser) as User;
-          if (parsed.id && parsed.email && parsed.role) {
-            setUser(parsed);
-          }
-        } catch {
-          window.localStorage.removeItem(CURRENT_USER_KEY);
-        }
-      }
+      setUser(readSavedUser());
       setIsLoading(false);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -82,10 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: account.role as Role,
     };
     setUser(authenticatedUser);
-    window.localStorage.setItem(
-      CURRENT_USER_KEY,
-      JSON.stringify(authenticatedUser),
-    );
+    persistUser(authenticatedUser);
     router.replace("/");
     return null;
   };
@@ -104,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    window.localStorage.removeItem(CURRENT_USER_KEY);
+    persistUser(null);
     router.replace("/login");
   };
 

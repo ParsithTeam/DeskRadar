@@ -9,6 +9,8 @@ export type TicketCategory =
   | "permission"
   | "software"
   | "hardware"
+  | "server"
+  | "general"
   | "unknown";
 
 export type Urgency = "unknown" | "low" | "medium" | "high" | "critical";
@@ -137,6 +139,14 @@ export interface KnowledgeArticle {
   content: string;
   updatedAt: string;
   author: string;
+}
+
+export interface KnowledgeArticleCreateInput {
+  title: string;
+  summary: string;
+  category: TicketCategory;
+  tags: string[];
+  content: string;
 }
 
 export interface Alert {

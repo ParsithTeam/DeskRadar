@@ -166,6 +166,8 @@ export default function TicketsPage() {
               ["permission", "مجوزها"],
               ["software", "نرم‌افزار"],
               ["hardware", "سخت‌افزار"],
+              ["server", "سرور"],
+              ["general", "عمومی"],
               ["unknown", "نامشخص"],
             ]}
           />

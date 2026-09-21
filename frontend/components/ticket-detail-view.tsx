@@ -23,6 +23,7 @@ import UrgencyBadge, {
   EscalationStatusBadge,
   TicketStatusBadge,
 } from "@/components/status-badge";
+import type { TicketStatus } from "@/types";
 
 export default function TicketDetailView({
   ticketId,
@@ -37,10 +38,12 @@ export default function TicketDetailView({
     escalations,
     analyzeTicket,
     loadTicket,
+    updateTicketStatus,
   } = useAppData();
   const [copied, setCopied] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const ticket = tickets.find((item) => item.id === ticketId);
   const escalation = escalations.find((item) => item.ticketId === ticketId);
@@ -111,6 +114,17 @@ export default function TicketDetailView({
     }
   };
 
+  const handleStatusChange = async (status: TicketStatus) => {
+    setUpdatingStatus(true);
+    try {
+      await updateTicketStatus(ticket.id, status);
+    } catch {
+      // The provider displays the backend error globally.
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Link
@@ -142,13 +156,14 @@ export default function TicketDetailView({
             <select
               aria-label="تغییر وضعیت تیکت"
               value={ticket.status}
-              disabled
-              title="API تغییر وضعیت تیکت در بک‌اند موجود نیست."
-              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-400 focus:outline-none cursor-not-allowed"
+              disabled={updatingStatus}
+              onChange={(event) =>
+                void handleStatusChange(event.target.value as TicketStatus)
+              }
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600 focus:outline-none cursor-pointer disabled:cursor-wait disabled:opacity-60"
             >
               <option value="open">باز</option>
               <option value="in_progress">در حال پیگیری</option>
-              <option value="escalated">ارجاع‌شده</option>
               <option value="resolved">حل‌شده</option>
               <option value="closed">بسته</option>
             </select>
