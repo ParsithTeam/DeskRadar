@@ -3,6 +3,8 @@ import type {
   AnalysisStatus,
   Incident,
   IncidentStatus,
+  KnowledgeArticle,
+  KnowledgeArticleCreateInput,
   Ticket,
   TicketAnalysis,
   TicketCategory,
@@ -37,6 +39,12 @@ function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function listItems(value: unknown, label: string): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value) && Array.isArray(value.items)) return value.items;
+  throw new ApiError(`پاسخ لیست ${label} از بک‌اند معتبر نیست.`);
+}
+
 function formatDate(value: unknown): string {
   const raw = asString(value);
   if (!raw) return "نامشخص";
@@ -59,6 +67,8 @@ function normalizeCategory(value: unknown): TicketCategory {
     "permission",
     "software",
     "hardware",
+    "server",
+    "general",
     "unknown",
   ];
   return known.includes(category as TicketCategory)
@@ -103,6 +113,8 @@ function categoryLabel(category: TicketCategory): string {
     permission: "دسترسی و مجوز",
     software: "نرم‌افزار",
     hardware: "سخت‌افزار",
+    server: "سرور",
+    general: "عمومی",
     unknown: "نامشخص",
   };
   return labels[category];
@@ -115,6 +127,19 @@ function mapAnalysis(value: unknown): TicketAnalysis | null {
     ? value.related_article[0]
     : value.related_article;
   const relatedRecord = isRecord(related) ? related : null;
+  const similarTickets = Array.isArray(value.similar_tickets)
+    ? value.similar_tickets
+        .filter(isRecord)
+        .map((item) => ({
+          id: asNumber(item.ticket_id ?? item.id),
+          title: asString(item.title, "تیکت مشابه"),
+          score: Math.min(
+            Math.max(asNumber(item.similarity ?? item.score), 0),
+            1,
+          ),
+        }))
+        .filter((item) => item.id > 0)
+    : [];
 
   return {
     category,
@@ -131,7 +156,7 @@ function mapAnalysis(value: unknown): TicketAnalysis | null {
     reasonsFa: Array.isArray(value.reasons_fa)
       ? value.reasons_fa.filter((item): item is string => typeof item === "string")
       : [],
-    similarTickets: [],
+    similarTickets,
     relatedArticle: relatedRecord
       ? {
           id: asNumber(relatedRecord.article_id ?? relatedRecord.id),
@@ -180,26 +205,78 @@ function normalizeIncidentStatus(value: unknown): IncidentStatus {
 
 function mapIncident(value: unknown): Incident {
   if (!isRecord(value)) throw new ApiError("پاسخ رخداد از بک‌اند معتبر نیست.");
-  const matchedIds = Array.isArray(value.matched_ticket_ids)
+  const tickets = Array.isArray(value.tickets)
+    ? value.tickets
+        .filter(isRecord)
+        .map((ticket) => ({
+          ticketId: asNumber(ticket.ticket_id ?? ticket.id),
+          title: asString(ticket.title, "تیکت مرتبط"),
+          similarity:
+            typeof ticket.similarity === "number"
+              ? Math.min(Math.max(ticket.similarity, 0), 1)
+              : undefined,
+          category: normalizeCategory(ticket.category),
+          categoryLabelFa: asString(ticket.category_label_fa),
+        }))
+        .filter((ticket) => ticket.ticketId > 0)
+    : [];
+  const legacyIds = Array.isArray(value.matched_ticket_ids)
     ? value.matched_ticket_ids.filter((id): id is number => typeof id === "number")
     : [];
+  const firstCategorizedTicket = tickets.find(
+    (ticket) => ticket.category !== "unknown",
+  );
+  const category = normalizeCategory(
+    value.category ?? firstCategorizedTicket?.category,
+  );
   const normalizedSeverity = normalizeUrgency(value.severity);
 
   return {
     id: asNumber(value.id),
     title: asString(value.title_fa, "رخداد بدون عنوان"),
     description: asString(value.reason_fa),
-    category: "unknown",
-    categoryLabelFa: "ثبت نشده",
+    category,
+    categoryLabelFa:
+      asString(value.category_label_fa) ||
+      firstCategorizedTicket?.categoryLabelFa ||
+      categoryLabel(category),
     severity: normalizedSeverity === "unknown" ? "medium" : normalizedSeverity,
     status: normalizeIncidentStatus(value.status),
     detectedReason: asString(value.reason_fa, "دلیلی ثبت نشده است."),
-    createdAt: formatDate(value.created_at),
+    createdAt: formatDate(value.created_at ?? value.updated_at),
     resolvedAt: value.resolved_at ? formatDate(value.resolved_at) : undefined,
-    tickets: matchedIds.map((ticketId) => ({
-      ticketId,
-      title: `تیکت #${ticketId.toLocaleString("fa-IR")}`,
-    })),
+    tickets:
+      tickets.length > 0
+        ? tickets.map((ticket) => ({
+            ticketId: ticket.ticketId,
+            title: ticket.title,
+            similarity: ticket.similarity,
+          }))
+        : legacyIds.map((ticketId) => ({
+            ticketId,
+            title: `تیکت #${ticketId.toLocaleString("fa-IR")}`,
+          })),
+  };
+}
+
+function mapArticle(value: unknown): KnowledgeArticle {
+  if (!isRecord(value)) {
+    throw new ApiError("پاسخ مقاله پایگاه دانش از بک‌اند معتبر نیست.");
+  }
+  const category = normalizeCategory(value.category);
+  return {
+    id: asNumber(value.id ?? value.article_id),
+    title: asString(value.title, "مقاله بدون عنوان"),
+    summary: asString(value.summary),
+    category,
+    categoryLabelFa:
+      asString(value.category_label_fa) || categoryLabel(category),
+    tags: Array.isArray(value.tags)
+      ? value.tags.filter((tag): tag is string => typeof tag === "string")
+      : [],
+    content: asString(value.content),
+    updatedAt: formatDate(value.updated_at ?? value.created_at),
+    author: asString(value.author, "ادمین سیستم"),
   };
 }
 
@@ -212,24 +289,34 @@ export function mapAlertFromApi(value: unknown): Alert {
   const severity =
     rawSeverity === "critical"
       ? "critical"
-      : rawSeverity === "warning"
+      : rawSeverity === "warning" || rawSeverity === "high"
         ? "high"
-        : "low";
-  const type = rawType === "incident_candidate" ? "incident" : "ticket";
+        : rawSeverity === "medium"
+          ? "medium"
+          : "low";
+  const type =
+    rawType === "incident_candidate" || rawType === "incident"
+      ? "incident"
+      : rawType === "escalation"
+        ? "escalation"
+        : "ticket";
 
   return {
     id: String(value.alert_id ?? value.id ?? ""),
     title:
-      type === "incident"
+      asString(value.title) ||
+      (type === "incident"
         ? "هشدار رخداد"
         : rawType === "urgent_ticket"
           ? "تیکت فوری"
-          : "هشدار جدید",
+          : "هشدار جدید"),
     message: asString(value.message, "هشدار جدیدی ثبت شده است."),
     severity,
     type,
     createdAt: formatDate(value.created_at),
-    read: Boolean(value.is_read),
+    read: Boolean(value.read ?? value.is_read),
+    assignedAdminId: asString(value.assigned_admin_id) || undefined,
+    assignedAdminName: asString(value.assigned_admin_name) || undefined,
     href: incidentId
       ? `/incidents/${incidentId}`
       : ticketId
@@ -279,8 +366,10 @@ export const apiClient = {
   },
 
   async listAdminTickets(currentUser: { id: string; name: string }) {
-    const data = await request<unknown[]>("/api/tickets/admin?limit=100&offset=0");
-    return data.map((item) => mapTicket(item, currentUser));
+    const data = await request<unknown>("/api/tickets/admin?limit=100&offset=0");
+    return listItems(data, "تیکت‌های ادمین").map((item) =>
+      mapTicket(item, currentUser),
+    );
   },
 
   async listUserTickets(currentUser: { id: string; name: string }) {
@@ -289,8 +378,8 @@ export const apiClient = {
       limit: "100",
       offset: "0",
     });
-    const data = await request<unknown[]>(`/api/tickets?${params}`);
-    return data.map((item) =>
+    const data = await request<unknown>(`/api/tickets?${params}`);
+    return listItems(data, "تیکت‌های کاربر").map((item) =>
       mapTicket(
         isRecord(item) ? { ...item, requester: currentUser.name } : item,
         currentUser,
@@ -298,8 +387,15 @@ export const apiClient = {
     );
   },
 
-  async getTicket(ticketId: number, currentUser: { id: string; name: string }) {
-    const data = await request<unknown>(`/api/tickets/${ticketId}`);
+  async getTicket(
+    ticketId: number,
+    currentUser: { id: string; name: string; role?: "admin" | "user" },
+  ) {
+    const path =
+      currentUser.role === "admin"
+        ? `/api/tickets/admin/${ticketId}`
+        : `/api/tickets/${ticketId}?${new URLSearchParams({ requester: currentUser.name })}`;
+    const data = await request<unknown>(path);
     return mapTicket(data, currentUser);
   },
 
@@ -320,10 +416,27 @@ export const apiClient = {
     await request<unknown>(`/api/tickets/${ticketId}/analyze`, { method: "POST" });
   },
 
+  async updateTicketStatus(ticketId: number, status: TicketStatus) {
+    const data = await request<unknown>(`/api/tickets/${ticketId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    return mapTicket(data);
+  },
+
   async listIncidents(status?: IncidentStatus) {
     const query = status ? `?status=${encodeURIComponent(status)}` : "";
-    const data = await request<unknown[]>(`/incidents${query}`);
-    return data.map(mapIncident);
+    const separator = query ? "&" : "?";
+    const data = await request<unknown>(
+      `/incidents${query}${separator}limit=100&offset=0`,
+    );
+    const incidents = listItems(data, "رخدادها").map(mapIncident);
+    if (incidents.some((incident) => incident.id <= 0)) {
+      throw new ApiError(
+        "خروجی لیست رخدادها شناسه رخداد را برنمی‌گرداند.",
+      );
+    }
+    return incidents;
   },
 
   async getIncident(incidentId: number) {
@@ -335,14 +448,29 @@ export const apiClient = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     };
-    let data: unknown;
-    try {
-      data = await request<unknown>(`/incidents/${incidentId}/status`, options);
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 404) throw error;
-      data = await request<unknown>(`/incidents/${incidentId}/satus`, options);
-    }
-    return mapIncident(data);
+    await request<unknown>(`/incidents/${incidentId}/status`, options);
+    return mapIncident(await request<unknown>(`/incidents/${incidentId}`));
+  },
+
+  async listArticles() {
+    const data = await request<unknown>(
+      "/knowledge-articles?page=1&pageSize=100",
+    );
+    return listItems(data, "مقالات").map(mapArticle);
+  },
+
+  async getArticle(articleId: number) {
+    return mapArticle(
+      await request<unknown>(`/knowledge-articles/${articleId}`),
+    );
+  },
+
+  async createArticle(input: KnowledgeArticleCreateInput) {
+    const data = await request<unknown>("/knowledge-articles", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    return mapArticle(data);
   },
 
   async listAlerts() {
@@ -350,9 +478,16 @@ export const apiClient = {
     return data.map(mapAlertFromApi);
   },
 
-  async markAlertRead(alertId: string) {
+  async markAlertRead(
+    alertId: string,
+    admin: { id: string; name: string },
+  ) {
+    const params = new URLSearchParams({
+      admin_id: admin.id,
+      admin_name: admin.name,
+    });
     return mapAlertFromApi(
-      await request<unknown>(`/alerts/${encodeURIComponent(alertId)}/mark-read`, {
+      await request<unknown>(`/alerts/${encodeURIComponent(alertId)}/read?${params}`, {
         method: "POST",
       }),
     );

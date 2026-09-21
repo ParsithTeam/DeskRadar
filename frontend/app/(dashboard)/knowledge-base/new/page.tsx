@@ -2,23 +2,52 @@
 
 import Link from "next/link";
 import { ArrowRight, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useAppData } from "@/lib/app-context";
 import { AccessDenied } from "@/components/loading-state";
 import type { TicketCategory } from "@/types";
 
 export default function NewArticlePage() {
   const { user } = useAuth();
+  const { createArticle } = useAppData();
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState<TicketCategory>("vpn");
   const [tags, setTags] = useState("");
   const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   if (!user || user.role !== "admin") return <AccessDenied />;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      const articleId = await createArticle({
+        title: title.trim(),
+        summary: summary.trim(),
+        category,
+        tags: tags
+          .split(/[،,]/)
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        content: content.trim(),
+      });
+      router.push(`/knowledge-base/${articleId}`);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "ذخیره مقاله ناموفق بود.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -75,6 +104,8 @@ export default function NewArticlePage() {
               <option value="permission">مجوزها</option>
               <option value="software">نرم‌افزار</option>
               <option value="hardware">سخت‌افزار</option>
+              <option value="server">سرور</option>
+              <option value="general">عمومی</option>
             </select>
           </div>
         </div>
@@ -131,15 +162,20 @@ export default function NewArticlePage() {
           </p>
         </div>
 
+        {error && (
+          <p className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+            {error}
+          </p>
+        )}
+
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled
-            title="API پایگاه دانش در بک‌اند پیاده‌سازی نشده است."
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-300 text-white text-xs font-bold cursor-not-allowed"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
             <Save className="w-4 h-4" />
-            ذخیره مقاله (در انتظار بک‌اند)
+            {submitting ? "در حال ذخیره..." : "ذخیره مقاله"}
           </button>
         </div>
       </form>

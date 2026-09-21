@@ -16,6 +16,7 @@ import type {
   Incident,
   IncidentStatus,
   KnowledgeArticle,
+  KnowledgeArticleCreateInput,
   Ticket,
   TicketCreateInput,
   TicketStatus,
@@ -41,6 +42,7 @@ interface AppContextValue {
   refreshAll: () => Promise<void>;
   loadTicket: (ticketId: number) => Promise<void>;
   loadIncident: (incidentId: number) => Promise<void>;
+  loadArticle: (articleId: number) => Promise<void>;
   createTicket: (input: TicketCreateInput) => Promise<number>;
   importTickets: (rows: ImportedTicket[], actor: User) => Promise<number>;
   analyzeTicket: (ticketId: number) => Promise<void>;
@@ -64,9 +66,7 @@ interface AppContextValue {
     incidentId: number,
     status: IncidentStatus,
   ) => Promise<void>;
-  createArticle: (
-    article: Omit<KnowledgeArticle, "id" | "updatedAt">,
-  ) => Promise<number>;
+  createArticle: (article: KnowledgeArticleCreateInput) => Promise<number>;
   markAlertRead: (alertId: string, admin: User) => Promise<void>;
   ingestAlert: (alert: Alert) => void;
 }
@@ -93,7 +93,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [escalations] = useState<Escalation[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [articles] = useState<KnowledgeArticle[]>([]);
+  const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [dataError, setDataError] = useState("");
@@ -104,6 +104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!user) {
       setTickets([]);
       setIncidents([]);
+      setArticles([]);
       setAlerts([]);
       setDataError("");
       setIsReady(true);
@@ -117,36 +118,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user.role === "admin"
         ? apiClient.listAdminTickets(user)
         : apiClient.listUserTickets(user);
-    const requests: Promise<unknown>[] = [ticketRequest];
-
-    if (user.role === "admin") {
-      requests.push(apiClient.listIncidents(), apiClient.listAlerts());
-    }
-
-    const results = await Promise.allSettled(requests);
+    const [ticketResult, articleResult, incidentResult, alertResult] =
+      await Promise.allSettled([
+        ticketRequest,
+        apiClient.listArticles(),
+        user.role === "admin" ? apiClient.listIncidents() : Promise.resolve([]),
+        user.role === "admin" ? apiClient.listAlerts() : Promise.resolve([]),
+      ]);
     const errors: string[] = [];
 
-    const ticketResult = results[0];
     if (ticketResult.status === "fulfilled") {
-      setTickets(ticketResult.value as Ticket[]);
+      setTickets(ticketResult.value);
     } else {
       setTickets([]);
       errors.push(`تیکت‌ها: ${errorMessage(ticketResult.reason)}`);
     }
 
-    if (user.role === "admin") {
-      const incidentResult = results[1];
-      const alertResult = results[2];
+    if (articleResult.status === "fulfilled") {
+      setArticles(articleResult.value);
+    } else {
+      setArticles([]);
+      errors.push(`پایگاه دانش: ${errorMessage(articleResult.reason)}`);
+    }
 
+    if (user.role === "admin") {
       if (incidentResult.status === "fulfilled") {
-        setIncidents(incidentResult.value as Incident[]);
+        setIncidents(incidentResult.value);
       } else {
         setIncidents([]);
         errors.push(`رخدادها: ${errorMessage(incidentResult.reason)}`);
       }
 
       if (alertResult.status === "fulfilled") {
-        setAlerts(alertResult.value as Alert[]);
+        setAlerts(alertResult.value);
       } else {
         setAlerts([]);
         errors.push(`هشدارها: ${errorMessage(alertResult.reason)}`);
@@ -183,6 +187,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const incident = await apiClient.getIncident(incidentId);
       setIncidents((current) => upsertById(current, incident));
+    } catch (error) {
+      setDataError(errorMessage(error));
+      throw error;
+    }
+  }, []);
+
+  const loadArticle = useCallback(async (articleId: number) => {
+    try {
+      const article = await apiClient.getArticle(articleId);
+      setArticles((current) => upsertById(current, article));
     } catch (error) {
       setDataError(errorMessage(error));
       throw error;
@@ -248,6 +262,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [pollTicketAnalysis, tickets],
   );
 
+  const updateTicketStatus = useCallback(
+    async (ticketId: number, status: TicketStatus) => {
+      try {
+        const ticket = await apiClient.updateTicketStatus(ticketId, status);
+        setTickets((current) => upsertById(current, ticket));
+      } catch (error) {
+        setDataError(errorMessage(error));
+        throw error;
+      }
+    },
+    [],
+  );
+
   const updateIncidentStatus = useCallback(
     async (incidentId: number, status: IncidentStatus) => {
       try {
@@ -264,7 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const markAlertRead = useCallback(async (alertId: string, admin: User) => {
     if (admin.role !== "admin") return;
     try {
-      const alert = await apiClient.markAlertRead(alertId);
+      const alert = await apiClient.markAlertRead(alertId, admin);
       setAlerts((current) =>
         current.map((item) => (item.id === alert.id ? alert : item)),
       );
@@ -273,6 +300,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   }, []);
+
+  const createArticle = useCallback(
+    async (input: KnowledgeArticleCreateInput) => {
+      try {
+        const article = await apiClient.createArticle(input);
+        setArticles((current) => upsertById(current, article));
+        return article.id;
+      } catch (error) {
+        setDataError(errorMessage(error));
+        throw error;
+      }
+    },
+    [],
+  );
 
   const ingestAlert = useCallback((alert: Alert) => {
     setAlerts((current) => {
@@ -302,15 +343,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshAll,
       loadTicket,
       loadIncident,
+      loadArticle,
       createTicket,
       importTickets: () => unsupported("ورود گروهی CSV"),
       analyzeTicket,
-      updateTicketStatus: () => unsupported("تغییر وضعیت تیکت"),
+      updateTicketStatus,
       escalateTicket: () => unsupported("ارجاع تیکت و گفتگو"),
       sendEscalationMessage: () => unsupported("گفتگوی ارجاع"),
       updateEscalationStatus: () => unsupported("مدیریت ارجاع"),
       updateIncidentStatus,
-      createArticle: () => unsupported("ایجاد مقاله پایگاه دانش"),
+      createArticle,
       markAlertRead,
       ingestAlert,
     }),
@@ -319,6 +361,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       analyzeTicket,
       articles,
       clearDataError,
+      createArticle,
       createTicket,
       dataError,
       escalations,
@@ -326,12 +369,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ingestAlert,
       isReady,
       loadIncident,
+      loadArticle,
       loadTicket,
       markAlertRead,
       refreshAll,
       tickets,
       unsupported,
       updateIncidentStatus,
+      updateTicketStatus,
     ],
   );
 

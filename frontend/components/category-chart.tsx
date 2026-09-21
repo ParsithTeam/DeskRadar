@@ -15,6 +15,8 @@ export default function CategoryChart() {
     { key: "permission", color: "bg-violet-500" },
     { key: "software", color: "bg-cyan-500" },
     { key: "hardware", color: "bg-orange-500" },
+    { key: "server", color: "bg-fuchsia-500" },
+    { key: "general", color: "bg-indigo-400" },
     { key: "unknown", color: "bg-slate-300" },
   ];
   const chartData = categories.map((item) => ({

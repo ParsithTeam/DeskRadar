@@ -9,5 +9,7 @@ export const categoryLabels: Record<TicketCategory, string> = {
   permission: "دسترسی و مجوز",
   software: "نرم‌افزار",
   hardware: "سخت‌افزار",
+  server: "سرور",
+  general: "عمومی",
   unknown: "نامشخص",
 };
