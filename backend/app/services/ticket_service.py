@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from starlette import status
 
+from app.tasks.ticket_tasks import analyze_ticket_task
 from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, AdminTicketFilter, UserTicketFilter
 from app.repositories.ticket_repository import TicketRepository
@@ -63,7 +63,7 @@ class TicketService:
             acquired = await self.ticket_repo.mark_as_pending(ticket_id=created_ticket["ticket_id"])
             if acquired:
                 background_tasks.add_task(
-                    self.process_ticket_analyze,
+                    analyze_ticket_task,
                     ticket_id=created_ticket["ticket_id"],
                 )
             else:
@@ -176,7 +176,7 @@ class TicketService:
             )
 
         #اضافه کردن تسک پس زمینه
-        background_task.add_task(self.process_ticket_analyze, ticket_id=ticket_id)
+        background_task.add_task(analyze_ticket_task, ticket_id=ticket_id)
 
         #TODO: خروجی این اسکما این بخش باید با فرانت چک بشه
         ticket = await self.ticket_repo.get_ticket(query= TicketQuery(ticket_id=ticket_id))

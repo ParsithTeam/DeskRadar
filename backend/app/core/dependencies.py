@@ -17,24 +17,24 @@ from app.services.ticket_service import TicketService
 # ---------- Repositories ----------
 
 def get_ticket_repository(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession | None = Depends(get_session),
 ) -> TicketRepository:
     return TicketRepository(session=session)
 
 
 def get_incident_repository(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession | None = Depends(get_session),
 ) -> IncidentRepository:
     return IncidentRepository(session=session)
 
 
 def get_alert_repository(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession | None = Depends(get_session),
 ) -> AlertRepository:
     return AlertRepository(session=session)
 
 def get_kb_repository(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession | None = Depends(get_session),
 ) -> AlertRepository:
     return AlertRepository(session=session)
 
@@ -77,3 +77,13 @@ def get_kb_service(
     kb_repo: KnowledgeBaseRepository = Depends(get_kb_repository),
 ) -> KnowledgeBaseService:
     return KnowledgeBaseService(kb_repo=kb_repo)
+
+#------------ wrapper----------------
+def buil_ticket_service(session: AsyncSession | None)->TicketService:
+    ticket_repo = TicketRepository(session)
+    incident_repo = IncidentRepository(session)
+    alert_repo = AlertRepository(session)
+    alert_serv = AlertService(alert_repo)
+    incident_serv = IncidentService(incident_repo, alert_serv, ticket_repo)
+    analysis_serv = AnalysisService()
+    return TicketService(ticket_repo, analysis_serv, incident_serv)

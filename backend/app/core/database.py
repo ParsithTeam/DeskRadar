@@ -1,4 +1,5 @@
 # from sqlalchemy.ext.declarative import declarative_base
+from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 # # بیس اصلی دیتا بیس
@@ -13,28 +14,33 @@ from app.core.config import settings
 class Base(DeclarativeBase):
     pass
 
+#------ default ------
+engine = None
+AsyncSessionLocal = None
 
-DATABASE_URL = settings.DATABASE_URL
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,
-    pool_size=10,
-    max_overflow=10,
-    pool_timeout=30,
-)
+if settings.DB_IS_ACTIVE:
+    DATABASE_URL = settings.DATABASE_URL
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=True,
+        pool_size=10,
+        max_overflow=10,
+        pool_timeout=30,
+    )
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+    AsyncSessionLocal = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
+@asynccontextmanager
+async def get_session() -> AsyncIterator[AsyncSession | None]:
+    """session می‌دهد؛ در حالت in-memory None."""
+    if not settings.DB_IS_ACTIVE:
+        yield None
+        return
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-
-async def get_session() -> AsyncIterator[AsyncSession]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
