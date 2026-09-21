@@ -1,4 +1,5 @@
 # from sqlalchemy.ext.declarative import declarative_base
+from typing import AsyncIterator
 
 # # بیس اصلی دیتا بیس
 # Base = declarative_base()
@@ -13,9 +14,13 @@ class Base(DeclarativeBase):
     pass
 
 
+DATABASE_URL = settings.DATABASE_URL
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     echo=True,
+    pool_size=10,
+    max_overflow=10,
+    pool_timeout=30,
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -28,3 +33,12 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+async def get_session() -> AsyncIterator[AsyncSession]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
