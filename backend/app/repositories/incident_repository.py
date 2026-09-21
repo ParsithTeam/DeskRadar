@@ -1,14 +1,17 @@
 from datetime import timezone, datetime
 import copy
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.incident import IncidentStatus, IncidentCreate, IncidentUpdate
 
 FAKE_INCIDENT_DB = []
 INCIDENT_ID_COUNTER = 911
 
 class IncidentRepository:
-    #TODO: در نسخه ی نهایی اینجا باید وابستگی(سشن دیتابیس) تزریق بشه
-    def __init__(self):
-        pass
+
+    def __init__(self, session: AsyncSession | None = None):
+        self.session = session
 
     async def get_all(self, offset:int, limit=int, status: IncidentStatus | None = None ) -> tuple[list[dict], int]:
 

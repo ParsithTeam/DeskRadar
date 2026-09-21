@@ -1,5 +1,8 @@
 import copy
 from datetime import datetime, timezone
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.alert import AlertCreate, AlertSeverity, AlertType
 
 # دیتابیس موقت (تا زمان اتصال کامل دیتابیس)
@@ -56,6 +59,8 @@ class AlertRepository:
     ریپازیتوری هشدارها:
     مسئول ذخیره، واکشی و تغییر وضعیت خوانده‌شدن هشدارها با رعایت لاجیک انتساب First-Read.
     """
+    def __init__(self, session: AsyncSession | None = None):
+        self.session = session
 
     async def create_alert(self, alert_in: AlertCreate) -> dict:
         global ALERT_ID_COUNTER

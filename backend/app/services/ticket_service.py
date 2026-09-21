@@ -3,7 +3,7 @@ from typing import Tuple
 from starlette import status
 
 from app.repositories.querise.ticket_querise import TicketQuery
-from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketFilterParams
+from app.schemas.ticket import AnalysisStatus, TicketStatus, AdminTicketFilter, UserTicketFilter
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
 from app.exceptions.ticket_exceptions import DuplicateTicketError, TicketPersistenceError
@@ -217,7 +217,7 @@ class TicketService:
     async def get_user_tickets(
             self,
             requester: str,
-            filters: TicketFilterParams
+            filters: UserTicketFilter
     ) -> dict:
         """
         واکشی تیکت‌های کاربر جاری:
@@ -231,7 +231,7 @@ class TicketService:
 
     async def get_admin_tickets(
             self,
-            filters: TicketFilterParams,
+            filters: AdminTicketFilter,
     ) -> dict:
         filter_query = TicketQuery(**filters.model_dump(exclude_unset=True))
 

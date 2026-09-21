@@ -2,6 +2,8 @@ import copy
 import hashlib
 from datetime import datetime, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketUrgency
 
@@ -13,6 +15,9 @@ FAKE_TICKETS_DB :list[dict] = []
 _id_counter = 777
 
 class TicketRepository:
+
+    def __init__(self, session: AsyncSession | None = None):
+        self.session = session
     # ساخت اثر انگشت مخصوص، بعدا بنظرم بهتهره زمان هم به متد هش اضافه کرد
     def _generate_fingerprint(self, title: str,
                               description: str,

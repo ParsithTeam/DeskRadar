@@ -11,6 +11,7 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 alert_repo = AlertRepository()
 alert_service = AlertService(alert_repo=alert_repo)
 
+#TODO: تکمیل منطق مربوط به آلرت ها
 
 @router.websocket("/ws")
 async def websocket_alert(websocket: WebSocket):
