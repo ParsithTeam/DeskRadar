@@ -1,6 +1,5 @@
-from fastapi import APIRouter, BackgroundTasks, Query, status
+from fastapi import APIRouter, BackgroundTasks, Query, status, Depends
 
-from app.repositories.knowledge_base_repository import KnowledgeBaseRepository
 from app.schemas.knowledge_base import (
     KnowledgeArticleCreate,
     KnowledgeArticleListResponse,
@@ -8,12 +7,9 @@ from app.schemas.knowledge_base import (
     KnowledgeArticleUpdate,
 )
 from app.services.knowledge_base_service import KnowledgeBaseService
+from app.core.dependencies import get_kb_service
 
 router = APIRouter(prefix="/knowledge-articles", tags=["Knowledge Base"])
-
-kb_repo = KnowledgeBaseRepository()
-kb_service = KnowledgeBaseService(kb_repo=kb_repo)
-
 
 # ==============================================================================
 # اندپوینت‌های رسمی و منطبق با فرانت‌اند DeskRadar (/knowledge-articles)
@@ -36,6 +32,7 @@ async def list_articles(
     q: str | None = Query(default=None, description="عبارت جستجو در عنوان، متن یا تگ‌ها"),
     page: int = Query(default=1, ge=1, description="شماره صفحه"),
     page_size: int = Query(default=20, ge=1, le=100, alias="pageSize", description="تعداد در هر صفحه"),
+    kb_service: KnowledgeBaseService = Depends(get_kb_service),
 ):
     return await kb_service.list_articles(
         category=category,
@@ -60,6 +57,7 @@ async def list_articles(
 async def create_article(
     article_in: KnowledgeArticleCreate,
     background_tasks: BackgroundTasks,
+    kb_service: KnowledgeBaseService = Depends(get_kb_service),
 ):
     return await kb_service.create_article(
         article_in=article_in,
@@ -73,7 +71,7 @@ async def create_article(
     status_code=status.HTTP_200_OK,
     summary="دریافت جزئیات کامل مقاله راهنما",
 )
-async def get_article(article_id: int):
+async def get_article(article_id: int, kb_service: KnowledgeBaseService = Depends(get_kb_service)):
     return await kb_service.get_article(article_id=article_id)
 
 
@@ -83,7 +81,11 @@ async def get_article(article_id: int):
     status_code=status.HTTP_200_OK,
     summary="ویرایش و به‌روزرسانی مقاله راهنما",
 )
-async def update_article(article_id: int, update_in: KnowledgeArticleUpdate):
+async def update_article(
+        article_id: int,
+        update_in: KnowledgeArticleUpdate,
+        kb_service: KnowledgeBaseService = Depends(get_kb_service),
+):
     return await kb_service.update_article(article_id=article_id, update_data=update_in)
 
 
@@ -92,7 +94,7 @@ async def update_article(article_id: int, update_in: KnowledgeArticleUpdate):
     status_code=status.HTTP_204_NO_CONTENT,
     summary="حذف مقاله از پایگاه دانش",
 )
-async def delete_article(article_id: int):
+async def delete_article(article_id: int, kb_service: KnowledgeBaseService = Depends(get_kb_service)):
     await kb_service.delete_article(article_id=article_id)
     return None
 
@@ -102,5 +104,5 @@ async def delete_article(article_id: int):
     status_code=status.HTTP_200_OK,
     summary="درخواست بازسازی بردارها در هوش مصنوعی",
 )
-async def reindex_knowledge_base():
+async def reindex_knowledge_base(kb_service: KnowledgeBaseService = Depends(get_kb_service)):
     return await kb_service.trigger_ai_reindex()

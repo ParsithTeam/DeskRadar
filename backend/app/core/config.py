@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     AI_CORE_URL: str = "http://localhost:8001"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/servicedesk_radar"
+    DB_IS_ACTIVE: bool = False
 
 
 settings = Settings()

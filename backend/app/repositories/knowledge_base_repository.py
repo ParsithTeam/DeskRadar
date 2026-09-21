@@ -3,6 +3,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.knowledge_base import (
     KnowledgeArticleCreate,
     KnowledgeArticleUpdate,
@@ -78,6 +80,8 @@ class KnowledgeBaseRepository:
     در حال حاضر با ساختار ایزوله در حافظه پیاده‌سازی شده و پس از تکمیل
     لایه دیتابیس توسط تیم مربوطه، بدون دستکاری لایه سرویس به AsyncSession متصل خواهد شد.
     """
+    def __init__(self, session: AsyncSession | None = None):
+        self.session = session
 
     async def create(self, article_in: KnowledgeArticleCreate) -> dict:
         global _kb_id_counter

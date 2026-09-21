@@ -2,6 +2,8 @@ import copy
 import hashlib
 from datetime import datetime, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, TicketUrgency
 
@@ -13,6 +15,9 @@ FAKE_TICKETS_DB :list[dict] = []
 _id_counter = 777
 
 class TicketRepository:
+
+    def __init__(self, session: AsyncSession | None = None):
+        self.session = session
     # ساخت اثر انگشت مخصوص، بعدا بنظرم بهتهره زمان هم به متد هش اضافه کرد
     def _generate_fingerprint(self, title: str,
                               description: str,
@@ -92,6 +97,34 @@ class TicketRepository:
         FAKE_TICKETS_DB.append(new_ticket)
 
         return new_ticket
+    #TODO: نسخه اصلی متد ذخیره سازی بعد از اتصال دیتابیس
+    #------------------
+    # async def save_new_ticket(self, ...):
+    #     fingerprint = self._generate_fingerprint(title, description, requester)
+    #     new_ticket = TicketModel(
+    #         title=title,
+    #         description=description,
+    #         requester=requester,
+    #         department=department,
+    #         analysis_status=analysis_status,
+    #         fingerprint=fingerprint,
+    #     )
+    #     self.session.add(new_ticket)
+    #     try:
+    #         await self.session.flush()
+    #     except IntegrityError as e:
+    #         await self.session.rollback()
+    #         if self._is_unique_violation(e):
+    #             raise DuplicateTicketError() from e
+    #         raise TicketPersistenceError() from e
+    #     except SQLAlchemyError as e:
+    #         await self.session.rollback()
+    #         raise TicketPersistenceError() from e
+    #     return self._to_dict(new_ticket)
+    #
+    # def _is_unique_violation(self, exc: IntegrityError) -> bool:
+    #     msg = str(exc.orig).lower()
+    #     return "unique" in msg or "duplicate" in msg
     
     async def update_ticket_analysis(self, 
                               ticket_id: int, 
@@ -141,4 +174,26 @@ class TicketRepository:
             total += 1
 
         return results[offset: offset + limit], total
+
+    async def mark_as_pending(self, ticket_id: int)-> bool:
+        """به صورت اتمیک وضعیت را به PENDING تغییر می‌دهد.
+        اگر وضعیت قبلاً PENDING بود، False برمی‌گرداند."""
+        #TODO: بعد از پیاده سازی واقعی دیتابیس
+        # stmt = (
+        #     update(TicketModel)
+        #     .where(TicketModel.id == ticket_id)
+        #     .where(TicketModel.analysis_status != AnalysisStatus.PENDING)
+        #     .values(
+        #         analysis_status=AnalysisStatus.PENDING,
+        #         updated_at=func.now(),
+        #     )
+        # )
+        # result = await self.session.execute(stmt)
+        # await self.session.commit()
+        # return result.rowcount == 1
+        for T in FAKE_TICKETS_DB:
+            if T.get("ticket_id") == ticket_id and T.get("analysis_status") != AnalysisStatus.PENDING:
+                T["analysis_status"] = AnalysisStatus.PENDING
+                return True
+        return False
 

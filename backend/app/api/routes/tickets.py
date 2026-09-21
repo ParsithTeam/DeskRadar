@@ -1,63 +1,37 @@
-from app.repositories.alert_repository import AlertRepository
-from app.repositories.incident_repository import IncidentRepository
-from app.repositories.ticket_repository import TicketRepository
-from app.schemas.ticket import TicketCreateRequest, TicketResponse, TicketStatus, TicketList, \
-    AdminTicketResponse, TicketStatusUpdateRequest, AdminTicketList, TicketUrgency, TicketFilterParams
-from app.services.alert_service import AlertService
-from app.services.analysis_service import AnalysisService
-from app.services.incident_service import IncidentService
+from app.schemas.ticket import (
+    TicketCreateRequest, TicketResponse, TicketList,
+    AdminTicketResponse, TicketStatusUpdateRequest, AdminTicketList,
+    AdminTicketFilter, UserTicketFilter
+)
 from app.services.ticket_service import TicketService
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query
+from fastapi import APIRouter, BackgroundTasks, status, Depends
+
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
-#---------------وابستگی های اولیه برای صرفا تست------------
-alert_repo = AlertRepository()
-ticket_repo = TicketRepository()
-alert_serv = AlertService(alert_repo=alert_repo)
-
-incident_repo = IncidentRepository()
-incident_serv = IncidentService(incident_repo, alert_serv, ticket_repo)
-
-ticket_repo = TicketRepository()
-analysis_serv = AnalysisService()
-
-ticket_service = TicketService(
-    ticket_repo=ticket_repo,
-    analysis_serv=analysis_serv,
-    incident_serv=incident_serv
-)
-
 @router.post("/", response_model=TicketResponse, status_code=status.HTTP_201_CREATED) #ریکوئست ایجاد تیکت جدید
-async def create_ticket(ticket_in: TicketCreateRequest, api_background_tasks: BackgroundTasks, auto_analyze: bool=True):
-    
-    try:
-
-        response = await ticket_service.create_ticket(
+async def create_ticket(
+        ticket_in: TicketCreateRequest,
+        api_background_tasks: BackgroundTasks,
+        auto_analyze: bool=True,
+        ticket_service: TicketService = Depends(TicketService),
+):
+    return await ticket_service.create_ticket(
             **ticket_in.model_dump(),
             background_tasks = api_background_tasks,
             auto_analyze= auto_analyze
-            )
-        return response
+    )
 
-    except HTTPException as http_ex:
-        raise http_ex
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail= f"Unknow internal error occurred: {str(e)}"
-        )
+
 
 @router.get("/", response_model=TicketList, status_code=status.HTTP_200_OK)
 async def list_user_tickets(
         current_user:str,   # current_user = Depends(get_current_user),  # بعد از پیاده‌سازی Auth
-        ticket_status: TicketStatus | None = Query(None),
-        limit: int = Query(20, ge=1, le=100),
-        offset: int = Query(0, ge=0)
+        filters: UserTicketFilter = Depends(UserTicketFilter),
+        ticket_service: TicketService = Depends(TicketService)
+
 ):
     """لیست تیکت‌های کاربر لاگین‌شده با حداقل جزئیات"""
-    filters = TicketFilterParams(ticket_status=ticket_status, limit=limit, offset=offset)
     return await ticket_service.get_user_tickets(
         requester=current_user,
         filters=filters
@@ -67,37 +41,21 @@ async def list_user_tickets(
 @router.get("/admin", response_model=AdminTicketList, status_code=status.HTTP_200_OK)
 async def list_admin_tickets(
     # current_admin = Depends(get_current_admin), # اعتبارسنجی توکن ادمین
-    #TODO: جایگزینی با فیلتر اسکما بعد از اضافه کردن Depends
-    q: str | None = Query(None, description="Search term for title/desc"),
-    category: str | None = Query(None),
-    department: str | None = Query(None, min_length=1, max_length=100),
-    urgency: TicketUrgency | None = Query(None),
-    ticket_status: TicketStatus | None = Query(None),
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    filters: AdminTicketFilter = Depends(AdminTicketFilter),
+    ticket_service: TicketService = Depends(TicketService)
 ):
     """دریافت لیست آیتم از تیکت های ادمین"""
-    filters = TicketFilterParams(q=q, category=category, department=department, urgency=urgency, ticket_status=ticket_status, limit=limit, offset=offset)
     return await ticket_service.get_admin_tickets(filters=filters)
 
 @router.get("/{ticket_id}",response_model=TicketResponse, status_code=status.HTTP_200_OK) #
-async def get_user_ticket(ticket_id: int, requester: str):
+async def get_user_ticket(ticket_id: int, requester: str, ticket_service: TicketService = Depends(TicketService)):
 
-    try:
-        response = await ticket_service.get_user_ticket_detail(ticket_id=ticket_id, requester=requester)
-        return response
-    
-    except HTTPException as http_ex:
-        raise http_ex
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail= f"Unknow internal error occurred: {str(e)}"
-        )
+    return await ticket_service.get_user_ticket_detail(ticket_id=ticket_id, requester=requester)
+
 
 @router.get("/admin/{ticket_id}",response_model=AdminTicketResponse, status_code=status.HTTP_200_OK)
-async def get_admin_ticket(ticket_id: int):
+async def get_admin_ticket(ticket_id: int, ticket_service: TicketService = Depends(TicketService)):
+
     return await ticket_service.get_admin_ticket_detail(ticket_id=ticket_id)
 
     
@@ -107,11 +65,15 @@ async def import_tickets_csv():
     return {"message": "tickets uploaded successfully"}
 
 @router.post("/{ticket_id}/analyze", status_code=status.HTTP_202_ACCEPTED)
-async def analyze_ticket(ticket_id: int, background_tasks: BackgroundTasks):
+async def analyze_ticket(ticket_id: int, background_tasks: BackgroundTasks, ticket_service: TicketService = Depends(TicketService)):
     """اجرای دستی تحلیل روی تیکت"""
     return await ticket_service.manual_analyze_ticket(ticket_id=ticket_id,
                                                       background_task=background_tasks)
 
 @router.patch("/{ticket_id}/status", response_model=AdminTicketResponse, status_code=status.HTTP_200_OK)
-async def update_ticket_status(ticket_id: int, payload: TicketStatusUpdateRequest):
+async def update_ticket_status(
+        ticket_id: int,
+        payload: TicketStatusUpdateRequest,
+        ticket_service: TicketService = Depends(TicketService)
+):
     return await ticket_service.update_ticket_status(ticket_id=ticket_id, status=payload.status)

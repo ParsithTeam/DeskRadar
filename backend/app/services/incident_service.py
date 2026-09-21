@@ -158,7 +158,7 @@ class IncidentService:
 
         current_status= IncidentStatus.normalize(incident.get("status", IncidentStatus.CONFIRMED))
         if self._is_incident_terminated(current_status):
-            raise HTTPException(status_code= http_status.Http_400, detail= f"Incident {incident_id} already terminated")
+            raise HTTPException(status_code= http_status.HTTP_400_BAD_REQUEST, detail= f"Incident {incident_id} already terminated")
 
         if current_status == payload.status:
             return incident
