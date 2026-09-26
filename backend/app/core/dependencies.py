@@ -1,14 +1,21 @@
 # app/api/dependencies.py
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status as http_status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.security import decode_access_token
 from app.repositories.knowledge_base_repository import KnowledgeBaseRepository
 from app.repositories.ticket_repository import TicketRepository
 from app.repositories.incident_repository import IncidentRepository
 from app.repositories.alert_repository import AlertRepository
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import TokenPayload
+from app.schemas.user import Role
 from app.services.alert_service import AlertService
 from app.services.analysis_service import AnalysisService
+from app.services.auth_service import AuthService
 from app.services.incident_service import IncidentService
 from app.services.knowledge_base_service import KnowledgeBaseService
 from app.services.ticket_service import TicketService
@@ -37,6 +44,11 @@ def get_kb_repository(
     session: AsyncSession | None = Depends(get_session),
 ) -> AlertRepository:
     return AlertRepository(session=session)
+
+def get_user_repository(
+    session: AsyncSession | None = Depends(get_session),
+) -> UserRepository:
+    return UserRepository(session=session)
 
 # ---------- Services ----------
 
@@ -77,6 +89,43 @@ def get_kb_service(
     kb_repo: KnowledgeBaseRepository = Depends(get_kb_repository),
 ) -> KnowledgeBaseService:
     return KnowledgeBaseService(kb_repo=kb_repo)
+
+def get_auth_service(
+        user_repo: UserRepository = Depends(get_user_repository),
+) -> AuthService:
+    return AuthService(user_repo=user_repo)
+
+#------------ Auth -----------------
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+async def get_current_user(
+        token: str = Depends(oauth2_scheme)
+) -> dict:
+    #TODO: اضافه کردن منطق چک با دیتابیس در صورت نیاز در آینده
+    credentials_exception = HTTPException(
+        status_code=http_status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    raw = decode_access_token(token=token)
+    if not raw:
+        raise credentials_exception
+
+    try:
+        payload = TokenPayload.model_validate(raw)
+    except ValidationError:
+        raise credentials_exception
+
+    return {"user_id": payload.sub, "role": payload.role}
+
+def get_current_admin(
+        current_user: dict = Depends(get_current_user)
+) -> dict:
+    if current_user["role"] != Role.ADMIN:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return current_user
+
+
 
 #------------ wrapper----------------
 def buil_ticket_service(session: AsyncSession | None)->TicketService:
