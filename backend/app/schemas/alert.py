@@ -15,12 +15,6 @@ class AlertSeverity(str, Enum):
 class AlertType(str, Enum):
     INCIDENT_CANDIDATE = "incident_candidate"
     URGENT_TICKET = "urgent_ticket"
-    INCIDENT = "incident"
-    TICKET = "ticket"
-    ESCALATION = "escalation"
-    # پشتیبانی از مقادیر قبلی برای سازگاری عقب‌رو
-    SLA_RISK = "sla_risk"
-    SAL_RISK = "sal_risk"
 
 
 class AlertCreate(BaseModel):
@@ -30,7 +24,7 @@ class AlertCreate(BaseModel):
     title: str | None = None
     ticket_id: int | None = None
     incident_id: int | None = None
-    idempotency_key: str
+    idempotency_key: str | None = None
 
 
 class AlertResponse(BaseModel):
@@ -67,9 +61,9 @@ class AlertResponse(BaseModel):
 
         # در صورت نبود عنوان، بر اساس نوع پیام عنوانی پیش‌فرض تولید می‌شود
         if not self.title:
-            if self.type in (AlertType.INCIDENT_CANDIDATE, AlertType.INCIDENT):
+            if self.type == AlertType.INCIDENT_CANDIDATE:
                 self.title = "هشدار رخداد احتمالی"
-            elif self.type in (AlertType.URGENT_TICKET, AlertType.TICKET):
+            elif self.type == AlertType.URGENT_TICKET:
                 self.title = "هشدار تیکت با فوریت بالا"
             else:
                 self.title = "اعلان سیستم"
