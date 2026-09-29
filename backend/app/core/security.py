@@ -17,7 +17,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(data: TokenCreateData):
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     pyload = {
         "sub": str(data.user_id),
         "role": data.role,
@@ -27,11 +27,16 @@ def create_access_token(data: TokenCreateData):
 
 def decode_access_token(token: str) -> TokenPayload | None:
     try:
+        print("TOKEN RECEIVED:", repr(token))
+
         payload = jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )
+
         return payload
-    except InvalidTokenError:
+
+    except InvalidTokenError as e:
+        print(f"Invalid token error: {str(e)}")
         return None
