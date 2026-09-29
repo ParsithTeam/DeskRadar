@@ -29,7 +29,7 @@ class TicketCreateRequest(BaseModel):
 
     title: str
     description: str
-    requester: Optional[str] = None
+   # requester: Optional[str] = None
     department: Optional[str] = None
 
 

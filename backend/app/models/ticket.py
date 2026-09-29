@@ -1,10 +1,15 @@
 from datetime import datetime
 
 
-from app.schemas.ticket import AnalysisStatus, TicketStatus
+# from app.schemas.ticket import AnalysisStatus, TicketStatus
 
 from sqlalchemy.orm import relationship
-from app.core.data_enum import Source_Status
+# from app.core.data_enum import Source_Status
+from app.core.data_enum import (
+    Source_Status,
+    Ticket_Status,
+    Analysis_Status,
+)
 from app.core.database import Base
 from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum, Index
 
@@ -18,21 +23,40 @@ class TicketModel(Base):
     requester_name = Column(String(100), nullable=True)
 
 
+    # ticket_status = Column(
+    # SQLEnum(
+    #     TicketStatus,
+    #     values_callable=lambda enum_cls: [member.value for member in enum_cls],
+    # ),
+    # default=TicketStatus.OPEN,
+    # nullable=False,
+    # )
     ticket_status = Column(
     SQLEnum(
-        TicketStatus,
+        Ticket_Status,
         values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        name="ticket_status",
     ),
-    default=TicketStatus.OPEN,
+    default=Ticket_Status.OPEN,
     nullable=False,
     )
 
+    # analysis_status = Column(
+    # SQLEnum(
+    #     AnalysisStatus,
+    #     values_callable=lambda enum_cls: [member.value for member in enum_cls],
+    # ),
+    # default=AnalysisStatus.PENDING,
+    # nullable=False,
+    # )
+
+
     analysis_status = Column(
     SQLEnum(
-        AnalysisStatus,
+        Analysis_Status,
         values_callable=lambda enum_cls: [member.value for member in enum_cls],
     ),
-    default=AnalysisStatus.PENDING,
+    default=Analysis_Status.PENDING,
     nullable=False,
     )
 

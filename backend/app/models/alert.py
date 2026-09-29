@@ -83,6 +83,12 @@ class Alert(Base):
         nullable=True,
     )
 
+    idempotency_key = Column(
+    String(255),
+    nullable=False,
+    unique=True,
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow,
