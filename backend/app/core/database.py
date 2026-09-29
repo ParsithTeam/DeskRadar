@@ -1,4 +1,5 @@
 # from sqlalchemy.ext.declarative import declarative_base
+# from contextlib import asynccontextmanager
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -34,7 +35,6 @@ if settings.DB_IS_ACTIVE:
         expire_on_commit=False,
     )
 
-@asynccontextmanager
 async def get_session() -> AsyncIterator[AsyncSession | None]:
     """session می‌دهد؛ در حالت in-memory None."""
     if not settings.DB_IS_ACTIVE:
@@ -45,6 +45,23 @@ async def get_session() -> AsyncIterator[AsyncSession | None]:
         try:
             yield session
             await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+@asynccontextmanager
+async def get_session_context():
+    """برای استفاده خارج از FastAPI مثل background task ها"""
+
+    if not settings.DB_IS_ACTIVE:
+        yield None
+        return
+
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+
         except Exception:
             await session.rollback()
             raise

@@ -26,7 +26,7 @@ class TicketService:
         self, 
         title: str, 
         description: str, 
-        requester: str | None, 
+        requester: str, 
         department: str | None, 
         background_tasks: BackgroundTasks,
         auto_analyze: bool = True
@@ -62,6 +62,8 @@ class TicketService:
         if auto_analyze:
             acquired = await self.ticket_repo.mark_as_pending(ticket_id=created_ticket["ticket_id"])
             if acquired:
+                await self.ticket_repo.commit()
+
                 background_tasks.add_task(
                     analyze_ticket_task,
                     ticket_id=created_ticket["ticket_id"],
@@ -174,6 +176,8 @@ class TicketService:
                 status_code=http_status.HTTP_409_CONFLICT,
                 detail=f"Ticket {ticket_id} already has been in progress."
             )
+        
+        await self.ticket_repo.commit()
 
         #اضافه کردن تسک پس زمینه
         background_task.add_task(analyze_ticket_task, ticket_id=ticket_id)
