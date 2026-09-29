@@ -40,10 +40,22 @@ def get_alert_repository(
 ) -> AlertRepository:
     return AlertRepository(session=session)
 
+# def get_kb_repository(
+#     session: AsyncSession | None = Depends(get_session),
+# ) -> AlertRepository:
+#     return AlertRepository(session=session)
+
 def get_kb_repository(
     session: AsyncSession | None = Depends(get_session),
-) -> AlertRepository:
-    return AlertRepository(session=session)
+) -> KnowledgeBaseRepository:
+    return KnowledgeBaseRepository(session=session)
+
+
+
+
+
+
+
 
 def get_user_repository(
     session: AsyncSession | None = Depends(get_session),
@@ -109,11 +121,13 @@ async def get_current_user(
     )
     raw = decode_access_token(token=token)
     if not raw:
+        print("Auth Exception: not valid raw!")
         raise credentials_exception
 
     try:
         payload = TokenPayload.model_validate(raw)
     except ValidationError:
+        print("Auth Exception: not valid payload!")
         raise credentials_exception
 
     return {"user_id": payload.sub, "role": payload.role}
