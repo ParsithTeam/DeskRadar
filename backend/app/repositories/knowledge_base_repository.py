@@ -11,6 +11,9 @@ from app.schemas.knowledge_base import (
     get_category_label_fa,
 )
 
+from sqlalchemy import select, delete , func
+from app.models.knowledge_article import KnowledgeArticle
+
 FAKE_KB_DB: list[dict] = []
 _kb_id_counter = 100
 
@@ -83,106 +86,307 @@ class KnowledgeBaseRepository:
     def __init__(self, session: AsyncSession | None = None):
         self.session = session
 
+    # async def create(self, article_in: KnowledgeArticleCreate) -> dict:
+    #     global _kb_id_counter
+    #     now = datetime.now(timezone.utc)
+
+    #     content = article_in.content.strip()
+    #     summary = article_in.summary or (content[:150] + "..." if len(content) > 150 else content)
+    #     category = article_in.category or "general"
+
+    #     new_article = {
+    #         "id": _kb_id_counter,
+    #         "title": article_in.title.strip(),
+    #         "content": content,
+    #         "summary": summary,
+    #         "category": category,
+    #         "category_label_fa": get_category_label_fa(category),
+    #         "tags": [t.strip() for t in article_in.tags if t.strip()],
+    #         "created_at": now,
+    #         "updated_at": now,
+    #         "author": "ادمین پشتیبانی IT",
+    #     }
+
+    #     _kb_id_counter += 1
+    #     FAKE_KB_DB.insert(0, new_article)
+    #     return copy.deepcopy(new_article)
+
     async def create(self, article_in: KnowledgeArticleCreate) -> dict:
-        global _kb_id_counter
-        now = datetime.now(timezone.utc)
+        article = KnowledgeArticle(
+            title=article_in.title.strip(),
+            content=article_in.content.strip(),
+            category=article_in.category or "general",
+            tags=article_in.tags,
+        )
 
-        content = article_in.content.strip()
-        summary = article_in.summary or (content[:150] + "..." if len(content) > 150 else content)
-        category = article_in.category or "general"
+        self.session.add(article)
 
-        new_article = {
-            "id": _kb_id_counter,
-            "title": article_in.title.strip(),
-            "content": content,
-            "summary": summary,
-            "category": category,
-            "category_label_fa": get_category_label_fa(category),
-            "tags": [t.strip() for t in article_in.tags if t.strip()],
-            "created_at": now,
-            "updated_at": now,
+        await self.session.flush()
+
+        return {
+            "id": article.id,
+            "title": article.title,
+            "content": article.content,
+            "summary": article.content[:150],
+            "category": article.category,
+            "category_label_fa": get_category_label_fa(article.category),
+            "tags": article.tags or [],
+            "created_at": article.created_at,
+            "updated_at": article.updated_at,
             "author": "ادمین پشتیبانی IT",
         }
 
-        _kb_id_counter += 1
-        FAKE_KB_DB.insert(0, new_article)
-        return copy.deepcopy(new_article)
+
+
+    # async def get_by_id(self, article_id: int) -> dict | None:
+    #     for item in FAKE_KB_DB:
+    #         if item.get("id") == article_id:
+    #             return copy.deepcopy(item)
+    #     return None
 
     async def get_by_id(self, article_id: int) -> dict | None:
-        for item in FAKE_KB_DB:
-            if item.get("id") == article_id:
-                return copy.deepcopy(item)
-        return None
 
-    async def get_all(
-        self,
-        category: str | None = None,
-        q: str | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[dict], int]:
-        filtered = []
+        result = await self.session.execute(
+            select(KnowledgeArticle)
+            .where(KnowledgeArticle.id == article_id)
+        )
 
-        q_clean = q.lower().strip() if q else None
-        cat_clean = category.lower().strip() if category else None
-
-        for item in FAKE_KB_DB:
-            # فیلتر دسته‌بندی
-            if cat_clean:
-                item_cat = (item.get("category") or "").lower()
-                if item_cat != cat_clean:
-                    continue
-
-            # فیلتر جستجوی متنی روی عنوان، محتوا و تگ‌ها
-            if q_clean:
-                title_match = q_clean in item.get("title", "").lower()
-                content_match = q_clean in item.get("content", "").lower()
-                tag_match = any(q_clean in str(t).lower() for t in item.get("tags", []))
-                if not (title_match or content_match or tag_match):
-                    continue
-
-            filtered.append(item)
-
-        total = len(filtered)
-        paginated = filtered[offset : offset + limit]
-        return copy.deepcopy(paginated), total
-
-    async def update(self, article_id: int, update_data: KnowledgeArticleUpdate) -> dict | None:
-        article = None
-        for item in FAKE_KB_DB:
-            if item.get("id") == article_id:
-                article = item
-                break
+        article = result.scalar_one_or_none()
 
         if not article:
             return None
 
+        return {
+            "id": article.id,
+            "title": article.title,
+            "content": article.content,
+            "summary": article.content[:150],
+            "category": article.category,
+            "category_label_fa": get_category_label_fa(article.category),
+            "tags": article.tags or [],
+            "created_at": article.created_at,
+            "updated_at": article.updated_at,
+            "author": "ادمین پشتیبانی IT",
+        }
+
+
+
+
+
+
+
+
+
+
+    # async def get_all(
+    #     self,
+    #     category: str | None = None,
+    #     q: str | None = None,
+    #     limit: int = 20,
+    #     offset: int = 0,
+    # ) -> tuple[list[dict], int]:
+    #     filtered = []
+
+    #     q_clean = q.lower().strip() if q else None
+    #     cat_clean = category.lower().strip() if category else None
+
+    #     for item in FAKE_KB_DB:
+    #         # فیلتر دسته‌بندی
+    #         if cat_clean:
+    #             item_cat = (item.get("category") or "").lower()
+    #             if item_cat != cat_clean:
+    #                 continue
+
+    #         # فیلتر جستجوی متنی روی عنوان، محتوا و تگ‌ها
+    #         if q_clean:
+    #             title_match = q_clean in item.get("title", "").lower()
+    #             content_match = q_clean in item.get("content", "").lower()
+    #             tag_match = any(q_clean in str(t).lower() for t in item.get("tags", []))
+    #             if not (title_match or content_match or tag_match):
+    #                 continue
+
+    #         filtered.append(item)
+
+    #     total = len(filtered)
+    #     paginated = filtered[offset : offset + limit]
+    #     return copy.deepcopy(paginated), total
+
+    async def get_all(
+            self,
+            category: str | None = None,
+            q: str | None = None,
+            limit: int = 20,
+            offset: int = 0,
+    ):
+
+        query = select(KnowledgeArticle)
+
+        count_query = select(func.count()).select_from(KnowledgeArticle)
+
+
+        if category:
+            query = query.where(
+                KnowledgeArticle.category == category
+            )
+
+            count_query = count_query.where(
+                KnowledgeArticle.category == category
+            )
+
+
+        if q:
+            search_filter = KnowledgeArticle.title.ilike(f"%{q}%")
+
+            query = query.where(search_filter)
+            count_query = count_query.where(search_filter)
+
+
+        # گرفتن تعداد کل
+        total_result = await self.session.execute(count_query)
+        total = total_result.scalar()
+
+
+        # pagination
+        query = (
+            query
+            .offset(offset)
+            .limit(limit)
+        )
+
+
+        result = await self.session.execute(query)
+
+        articles = result.scalars().all()
+
+
+        items = []
+
+        for article in articles:
+            items.append({
+                "id": article.id,
+                "title": article.title,
+                "content": article.content,
+                "summary": article.content[:150],
+                "category": article.category,
+                "category_label_fa": get_category_label_fa(article.category),
+                "tags": article.tags or [],
+                "created_at": article.created_at,
+                "updated_at": article.updated_at,
+                "author": "ادمین پشتیبانی IT",
+            })
+
+
+        return items, total
+
+
+    # async def update(self, article_id: int, update_data: KnowledgeArticleUpdate) -> dict | None:
+    #     article = None
+    #     for item in FAKE_KB_DB:
+    #         if item.get("id") == article_id:
+    #             article = item
+    #             break
+
+    #     if not article:
+    #         return None
+
+    #     update_dict = update_data.model_dump(exclude_unset=True)
+
+    #     if "title" in update_dict and update_dict["title"] is not None:
+    #         article["title"] = update_dict["title"].strip()
+
+    #     if "content" in update_dict and update_dict["content"] is not None:
+    #         article["content"] = update_dict["content"].strip()
+    #         if "summary" not in update_dict:
+    #             article["summary"] = article["content"][:150] + "..." if len(article["content"]) > 150 else article["content"]
+
+    #     if "summary" in update_dict and update_dict["summary"] is not None:
+    #         article["summary"] = update_dict["summary"].strip()
+
+    #     if "category" in update_dict and update_dict["category"] is not None:
+    #         cat = update_dict["category"].strip()
+    #         article["category"] = cat
+    #         article["category_label_fa"] = get_category_label_fa(cat)
+
+    #     if "tags" in update_dict and update_dict["tags"] is not None:
+    #         article["tags"] = [t.strip() for t in update_dict["tags"] if t.strip()]
+
+    #     article["updated_at"] = datetime.now(timezone.utc)
+    #     return copy.deepcopy(article)
+
+
+    async def update(
+            self,
+            article_id: int,
+            update_data: KnowledgeArticleUpdate
+    ) -> dict | None:
+
+        result = await self.session.execute(
+            select(KnowledgeArticle)
+            .where(KnowledgeArticle.id == article_id)
+        )
+
+        article = result.scalar_one_or_none()
+
+        if not article:
+            return None
+
+
         update_dict = update_data.model_dump(exclude_unset=True)
 
+
         if "title" in update_dict and update_dict["title"] is not None:
-            article["title"] = update_dict["title"].strip()
+            article.title = update_dict["title"].strip()
+
 
         if "content" in update_dict and update_dict["content"] is not None:
-            article["content"] = update_dict["content"].strip()
-            if "summary" not in update_dict:
-                article["summary"] = article["content"][:150] + "..." if len(article["content"]) > 150 else article["content"]
+            article.content = update_dict["content"].strip()
 
-        if "summary" in update_dict and update_dict["summary"] is not None:
-            article["summary"] = update_dict["summary"].strip()
 
         if "category" in update_dict and update_dict["category"] is not None:
-            cat = update_dict["category"].strip()
-            article["category"] = cat
-            article["category_label_fa"] = get_category_label_fa(cat)
+            article.category = update_dict["category"].strip()
+
 
         if "tags" in update_dict and update_dict["tags"] is not None:
-            article["tags"] = [t.strip() for t in update_dict["tags"] if t.strip()]
+            article.tags = [
+                t.strip()
+                for t in update_dict["tags"]
+                if t.strip()
+            ]
 
-        article["updated_at"] = datetime.now(timezone.utc)
-        return copy.deepcopy(article)
 
-    async def delete(self, article_id: int) -> bool:
-        global FAKE_KB_DB
-        initial_len = len(FAKE_KB_DB)
-        FAKE_KB_DB = [item for item in FAKE_KB_DB if item.get("id") != article_id]
-        return len(FAKE_KB_DB) < initial_len
+        article.updated_at = datetime.utcnow()
+
+
+        await self.session.flush()
+
+
+        return {
+            "id": article.id,
+            "title": article.title,
+            "content": article.content,
+            "summary": article.content[:150],
+            "category": article.category,
+            "category_label_fa": get_category_label_fa(article.category),
+            "tags": article.tags or [],
+            "created_at": article.created_at,
+            "updated_at": article.updated_at,
+            "author": "ادمین پشتیبانی IT",
+        }
+
+
+
+    # async def delete(self, article_id: int) -> bool:
+    #     global FAKE_KB_DB
+    #     initial_len = len(FAKE_KB_DB)
+    #     FAKE_KB_DB = [item for item in FAKE_KB_DB if item.get("id") != article_id]
+    #     return len(FAKE_KB_DB) < initial_len
+
+    async def delete(self, article_id:int):
+
+        result = await self.session.execute(
+            delete(KnowledgeArticle)
+            .where(KnowledgeArticle.id == article_id)
+        )
+
+        return result.rowcount > 0
+        

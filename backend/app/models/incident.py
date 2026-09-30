@@ -77,6 +77,11 @@ class Incident(Base):
         nullable=False,
     )
 
+    resolved_at = Column(
+    DateTime,
+    nullable=True,
+    )
+
     __table_args__ = (
     Index("ix_incidents_status", "status"),
     )

@@ -2,10 +2,11 @@
 from enum import Enum
 
 class Analysis_Status(str, Enum):
+    WAITING = "waiting"
     PENDING = "pending"
     COMPLETE = "complete"
     FAILED = "failed"
-
+    
 class Ticket_Status(str, Enum):
     IN_PROGRESS = "in_progress"
     OPEN        = "open"
@@ -20,11 +21,11 @@ class Urgency_Status(str, Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
-
 class Incident_Status(str, Enum):
     CANDIDATE = "candidate"
     CONFIRMED = "confirmed"
     RESOLVED = "resolved"
+    DISMISSED = "dismissed"
 
 class Source_Status(str, Enum):
     MANUAL = "manual"

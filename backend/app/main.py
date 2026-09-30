@@ -6,6 +6,7 @@ from app.api.routes.tickets import router as ticket_router
 from  app.api.routes.alerts import router as alert_router
 from app.api.routes.incidents import router as incident_router
 from app.api.routes.knowledge_base import router as kb_router
+from app.api.routes.auth import router as auth_router
 app = FastAPI(
     title="ServiceDesk Radar API",
     version="1.0.0",
@@ -16,6 +17,7 @@ app.include_router(ticket_router, prefix="/api")
 app.include_router(alert_router)
 app.include_router(incident_router)
 app.include_router(kb_router)
+app.include_router(auth_router)
 
 @app.get("/health")
 def health_check():
@@ -26,10 +28,10 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 
-from app.core.database import get_db
+from app.core.database import get_session
 
 @app.get("/db-test")
-async def db_test(db: AsyncSession = Depends(get_db)):
+async def db_test(db: AsyncSession = Depends(get_session)):
     result = await db.execute(text("SELECT 1"))
     return {
         "database": "connected",
