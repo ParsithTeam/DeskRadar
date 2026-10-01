@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     )
 
     AI_CORE_URL: str = "http://localhost:8001"
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/servicedesk_radar"
+    DATABASE_URL: str
     DB_IS_ACTIVE: bool = False
 
     JWT_SECRET_KEY: str = "DarkNight" #TODO: در نسخه نهایی باید از فایل .env خوانده بشه
