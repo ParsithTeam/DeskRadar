@@ -15,12 +15,6 @@ class AlertSeverity(str, Enum):
 class AlertType(str, Enum):
     INCIDENT_CANDIDATE = "incident_candidate"
     URGENT_TICKET = "urgent_ticket"
-    INCIDENT = "incident"
-    TICKET = "ticket"
-    ESCALATION = "escalation"
-    # پشتیبانی از مقادیر قبلی برای سازگاری عقب‌رو
-    SLA_RISK = "sla_risk"
-    SAL_RISK = "sal_risk"
 
 
 class AlertCreate(BaseModel):
@@ -30,7 +24,7 @@ class AlertCreate(BaseModel):
     title: str | None = None
     ticket_id: int | None = None
     incident_id: int | None = None
-    idempotency_key: str
+    idempotency_key: str | None = None
 
 
 class AlertResponse(BaseModel):
@@ -42,7 +36,7 @@ class AlertResponse(BaseModel):
     incident_id: int | None = None
 
     id: int = Field(default=0, description="شناسه اصلی هشدار")
-    alert_id: int | None = Field(default=None, description="شناسه معادل جهت سازگاری با فرانت")
+    #alert_id: int | None = Field(default=None, description="شناسه معادل جهت سازگاری با فرانت")
 
     is_read: bool = Field(default=False, description="وضعیت خوانده‌شده")
     read: bool = Field(default=False, description="فلگ معادل خوانده‌شده برای فرانت")
@@ -50,14 +44,15 @@ class AlertResponse(BaseModel):
     assigned_admin_id: str | None = Field(default=None, description="شناسه ادمین مسئول")
     assigned_admin_name: str | None = Field(default=None, description="نام ادمین مسئول")
     created_at: datetime
+    #TODO:  در صورت نیاز اضافه کردن زمان خواندن شدن توسط ادمین
 
     @model_validator(mode="after")
     def sync_id_and_read(self) -> "AlertResponse":
-        # هماهنگ‌سازی id و alert_id برای جلوگیری از خطای ۵۰۰ در فرانت و تست‌ها
-        if self.alert_id is None and self.id:
-            self.alert_id = self.id
-        elif self.id == 0 and self.alert_id is not None:
-            self.id = self.alert_id
+        # # هماهنگ‌سازی id و alert_id برای جلوگیری از خطای ۵۰۰ در فرانت و تست‌ها
+        # if self.alert_id is None and self.id:
+        #     self.alert_id = self.id
+        # elif self.id == 0 and self.alert_id is not None:
+        #     self.id = self.alert_id
 
         # همگام‌سازی is_read و read
         if self.is_read:
@@ -67,9 +62,9 @@ class AlertResponse(BaseModel):
 
         # در صورت نبود عنوان، بر اساس نوع پیام عنوانی پیش‌فرض تولید می‌شود
         if not self.title:
-            if self.type in (AlertType.INCIDENT_CANDIDATE, AlertType.INCIDENT):
+            if self.type == AlertType.INCIDENT_CANDIDATE:
                 self.title = "هشدار رخداد احتمالی"
-            elif self.type in (AlertType.URGENT_TICKET, AlertType.TICKET):
+            elif self.type == AlertType.URGENT_TICKET:
                 self.title = "هشدار تیکت با فوریت بالا"
             else:
                 self.title = "اعلان سیستم"

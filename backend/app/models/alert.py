@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from app.schemas.alert import AlertType
 
 from sqlalchemy import (
     Column,
@@ -7,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
+    Enum as SQLEnum,
 )
 
 from app.core.database import Base
@@ -23,7 +25,11 @@ class Alert(Base):
     )
 
     type = Column(
-        String(50),
+        SQLEnum(
+            AlertType,
+            name="alert_type",
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
         nullable=False,
     )
 
@@ -49,25 +55,7 @@ class Alert(Base):
         nullable=True,
     )
 
-    urgent_ticket = Column(
-        Boolean,
-        default=False,
-        nullable=False,
-    )
-
-    incident_candidate = Column(
-        Boolean,
-        default=False,
-        nullable=False,
-    )
-
-    sla_risk = Column(
-        Boolean,
-        default=False,
-        nullable=False,
-    )
-
-    is_read = Column(
+    read = Column(
         Boolean,
         default=False,
         nullable=False,
@@ -84,13 +72,13 @@ class Alert(Base):
     )
 
     idempotency_key = Column(
-    String(255),
-    nullable=False,
-    unique=True,
+        String(255),
+        nullable=False,
+        unique=True,
     )
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )

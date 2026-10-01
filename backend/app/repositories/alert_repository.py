@@ -118,7 +118,7 @@
 #                 return copy.deepcopy(alert)
 #         return None
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -126,7 +126,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.alert import Alert
 from app.schemas.alert import AlertCreate
-from app.models.incident import Incident
 
 class AlertRepository:
 
@@ -147,12 +146,7 @@ class AlertRepository:
             "ticket_id": alert.ticket_id,
             "incident_id": alert.incident_id,
 
-            "urgent_ticket": alert.urgent_ticket,
-            "incident_candidate": alert.incident_candidate,
-            "sla_risk": alert.sla_risk,
-
-            "is_read": alert.is_read,
-            "read": alert.is_read,
+            "read": alert.read,
 
             "assigned_admin_id": alert.assigned_admin_id,
             "assigned_admin_name": alert.assigned_admin_name,
@@ -178,13 +172,10 @@ class AlertRepository:
             ticket_id=data.get("ticket_id"),
             incident_id=data.get("incident_id"),
             idempotency_key=data["idempotency_key"],
-            urgent_ticket=False,
-            incident_candidate=False,
-            sla_risk=False,
-            is_read=False,
+            read=False,
             assigned_admin_id=None,
             assigned_admin_name=None,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         try:
@@ -225,7 +216,7 @@ class AlertRepository:
         query = select(Alert).order_by(Alert.created_at.desc())
 
         if unread_only:
-            query = query.where(Alert.is_read.is_(False))
+            query = query.where(Alert.read.is_(False))
 
         result = await self.session.execute(query)
         alerts = result.scalars().all()
