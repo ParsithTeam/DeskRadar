@@ -21,6 +21,8 @@ def create_access_token(data: TokenCreateData):
     pyload = {
         "sub": str(data.user_id),
         "role": data.role,
+        "name": data.name,
+        "dept": data.department,
         "exp": expire,
     }
     return jwt.encode(pyload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
@@ -35,7 +37,7 @@ def decode_access_token(token: str) -> TokenPayload | None:
             algorithms=[settings.JWT_ALGORITHM],
         )
 
-        return payload
+        return TokenPayload.model_validate(payload)
 
     except InvalidTokenError as e:
         print(f"Invalid token error: {str(e)}")

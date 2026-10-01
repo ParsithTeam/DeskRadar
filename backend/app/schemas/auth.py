@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
 from app.schemas.user import Role
 
@@ -10,6 +10,8 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: int
     role: Role
+    name: str = Field(max_length=50)
+    dept: str | None = Field(max_length=25)
     exp: int
     @field_validator("sub", mode="before")
     @classmethod
@@ -27,6 +29,9 @@ class TokenCreateData(BaseModel):
     """
     user_id: int
     role: Role
+    name: str = Field(max_length=50)
+    department: str | None = Field(max_length=25)
+
 
 class LoginRequest(BaseModel):
     email: str
