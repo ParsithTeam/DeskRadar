@@ -104,7 +104,7 @@ class TicketService:
                                                    new_analysis_status= AnalysisStatus.COMPLETED,
                                                    new_analysis_data= analysis_data )
 
-            #await self.ticket_repo.commit() بعد از اضافه شدن دیتا بیس
+            await self.ticket_repo.commit()
             print(f"Updating analysis for ticket id: {ticket_id} completed.")
 
         except Exception as e:

@@ -46,7 +46,7 @@ class IncidentService:
         if len(matched_tickets) == 0:
             print("Probably bad request format..!")
         try:
-            matched_ticket_ids = self._matched_ticket_parser(matched_tickets)
+            matched_ticket_ids, _ = self._matched_ticket_parser(matched_tickets)
         except Exception as e:
             print("Unable to parse incident matched tickets!")
             matched_ticket_ids = []
@@ -80,7 +80,7 @@ class IncidentService:
 
             incident_out = await self.incident_repo.create(new_incident_data)
             #TODO: کامیت بعد از اتصال دیتابیس
-            #await self.incident_repo.commit()
+            await self.incident_repo.commit()
 
             if severity in [IncidentSeverity.HIGH, IncidentSeverity.CRITICAL]:
                 send_alert = True
