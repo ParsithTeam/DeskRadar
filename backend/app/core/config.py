@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     AI_CORE_URL: str = "http://localhost:8001"
     DATABASE_URL: str
-    DB_IS_ACTIVE: bool = False
+    DB_IS_ACTIVE: bool
 
     JWT_SECRET_KEY: str = "DarkNight" #TODO: در نسخه نهایی باید از فایل .env خوانده بشه
     JWT_ALGORITHM: str = "HS256"

@@ -6,16 +6,18 @@ from app.core.security import hash_password
 # in-memory DB موقت
 FAKE_USERS_DB: dict[str, dict] = {
     "hossein@gmail.com": {
-        "user_id": 700,
-        "full_name": "Hossein",
+        "user_id": 777,
+        "name": "Hossein",
+        "department": "Front",
         "email": "hossein@gmail.com",
         "role": "admin",
         "disabled": False,
         "hashed_password": hash_password("admin123"),
     },
     "danial@gmail.com": {
-        "user_id": 600,
-        "full_name": "Danial",
+        "user_id": 700,
+        "name": "Danial",
+        "department": "Backend",
         "email": "danial@gmail.com",
         "role": "user",
         "disabled": False,
