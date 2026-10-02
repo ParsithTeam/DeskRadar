@@ -97,6 +97,7 @@ class IncidentResponse(IncidentBase):
     model_config = ConfigDict(from_attributes=True)
 
 class IncidentListItem(BaseModel):
+    id: int
     title_fa: str
     severity: IncidentSeverity
     status: IncidentStatus
