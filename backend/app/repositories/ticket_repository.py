@@ -1,4 +1,4 @@
-import copy
+
 import hashlib
 from datetime import datetime, timezone
 
@@ -68,7 +68,7 @@ class TicketRepository:
             "ticket_id": ticket.id,
             "title": ticket.title,
             "description": ticket.description,
-            "requester": ticket.requester_name,
+            "requester": ticket.requester,
             "department": ticket.department,
             "analysis_status": ticket.analysis_status.value,
             "ticket_status": ticket.ticket_status.value,
@@ -95,9 +95,9 @@ class TicketRepository:
 
     def _generate_fingerprint(self, title: str,
                               description: str,
-                              requester: str | None) -> str:
-        req = requester or "nobody"
-        raw_text = f"{title.lower()}{description.lower()}{req.lower()}"
+                              requester: int | None) -> str:
+        req = requester or 700
+        raw_text = f"{title.lower()}{description.lower()}{req}"
         return hashlib.md5(raw_text.encode("utf-8")).hexdigest()
     
     # async def get_by_fingerprint(self, finger_print) -> Optional[str]:
@@ -123,7 +123,7 @@ class TicketRepository:
         self,
         title: str,
         description: str,
-        requester: str | None,
+        requester: int,
     ) -> dict | None:
 
         if self.session is None:
@@ -195,7 +195,7 @@ class TicketRepository:
 
         if query.requester is not None:
             stmt = stmt.where(
-                TicketModel.requester_name == query.requester
+                TicketModel.requester == query.requester
             )
 
         if query.department is not None:
@@ -352,7 +352,7 @@ class TicketRepository:
         self,
         title: str,
         description: str,
-        requester: str | None,
+        requester: int,
         department: str | None,
         analysis_status: AnalysisStatus = AnalysisStatus.PENDING,
     ) -> dict:
@@ -371,7 +371,7 @@ class TicketRepository:
         new_ticket = TicketModel(
             title=title,
             description=description,
-            requester_name=requester,
+            requester=requester,
             department=department,
             ticket_status=Ticket_Status.OPEN,
             analysis_status=Analysis_Status(analysis_status.value),
@@ -402,7 +402,7 @@ class TicketRepository:
             "ticket_id": new_ticket.id,
             "title": new_ticket.title,
             "description": new_ticket.description,
-            "requester": new_ticket.requester_name,
+            "requester": new_ticket.requester,
             "department": new_ticket.department,
             "ticket_status": new_ticket.ticket_status.value,
             "analysis_status": new_ticket.analysis_status.value,
@@ -655,7 +655,7 @@ class TicketRepository:
 
         if query.requester is not None:
             conditions.append(
-                TicketModel.requester_name == query.requester
+                TicketModel.requester == query.requester
             )
 
         if query.department is not None:

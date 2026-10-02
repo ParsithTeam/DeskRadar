@@ -24,7 +24,7 @@ async def create_ticket(
 ):
     
     ticket_data = ticket_in.model_dump()
-    ticket_data.update({"requester": "nobody", "department": "hell"})
+    ticket_data.update({"requester": current_user["requester"], "department": current_user["department"]})
 
     return await ticket_service.create_ticket(
         **ticket_data,
@@ -44,7 +44,7 @@ async def list_user_tickets(
 ):
     """لیست تیکت‌های کاربر لاگین‌شده با حداقل جزئیات"""
     return await ticket_service.get_user_tickets(
-        requester=str(current_user["user_id"]),
+        requester=current_user["requester"],
         filters=filters
     )
 
@@ -75,7 +75,7 @@ async def get_user_ticket(
 ):
     return await ticket_service.get_user_ticket_detail(
         ticket_id=ticket_id,
-        requester=str(current_user["user_id"])
+        requester=current_user["requester"],
     )
 
 @router.get("/admin/{ticket_id}",response_model=AdminTicketResponse, status_code=status.HTTP_200_OK)

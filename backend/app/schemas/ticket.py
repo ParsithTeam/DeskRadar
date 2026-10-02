@@ -36,7 +36,7 @@ class TicketResponse(BaseModel):
     ticket_id: int
     title: str
     description: str
-    requester: str | None
+    requester: int | None
     department: str | None
     analysis_status: AnalysisStatus = AnalysisStatus.PENDING
     ticket_status: TicketStatus = TicketStatus.OPEN
@@ -70,7 +70,7 @@ class AdminTicketListItem(BaseModel):
     ticket_id: int
 
     title: str
-    requester: str
+    requester: int
     department: str
 
     analysis_status: AnalysisStatus

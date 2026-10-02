@@ -4,7 +4,7 @@ from app.schemas.ticket import TicketStatus, TicketUrgency
 
 class TicketQuery(BaseModel):
     ticket_id: int | None = None
-    requester: str | None = None
+    requester: int | None = None
     category: str | None = None
     department: str | None = None
     ticket_status: TicketStatus | None = None

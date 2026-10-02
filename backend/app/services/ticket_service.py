@@ -26,7 +26,7 @@ class TicketService:
         self, 
         title: str, 
         description: str, 
-        requester: str, 
+        requester: int,
         department: str | None, 
         background_tasks: BackgroundTasks,
         auto_analyze: bool = True
@@ -197,7 +197,7 @@ class TicketService:
             return await self.ticket_repo.get_ticket(query=TicketQuery(ticket_id=ticket_id))
 
 
-    async def get_user_ticket_detail(self, ticket_id:int, requester: str) -> dict:
+    async def get_user_ticket_detail(self, ticket_id:int, requester: int) -> dict:
         target_ticket = await self.ticket_repo.get_ticket(query=TicketQuery(ticket_id=ticket_id, requester=requester))
 
         if target_ticket is None or target_ticket.get("requester") != requester:
@@ -220,7 +220,7 @@ class TicketService:
 
     async def get_user_tickets(
             self,
-            requester: str,
+            requester: int,
             filters: UserTicketFilter
     ) -> dict:
         """

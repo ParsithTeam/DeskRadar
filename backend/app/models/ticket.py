@@ -20,7 +20,7 @@ class TicketModel(Base):
     title = Column(String(150), nullable=False)
     description = Column(String, nullable=False)
     department = Column(String(100), nullable=True)
-    requester_name = Column(String(100), nullable=True)
+    requester = Column(Integer, nullable=True) #TODO: باید حذف بشه بعد
 
 
     # ticket_status = Column(
