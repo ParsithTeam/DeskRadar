@@ -119,18 +119,20 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    raw = decode_access_token(token=token)
-    if not raw:
-        print("Auth Exception: not valid raw!")
-        raise credentials_exception
 
+    # raw = decode_access_token(token=token)
+    # if not raw:
+    #     print("Auth Exception: not valid raw!")
+    #     raise credentials_exception
+    decoded_token = decode_access_token(token)
     try:
-        payload = TokenPayload.model_validate(raw)
-    except ValidationError:
-        print("Auth Exception: not valid payload!")
+        payload = TokenPayload.model_validate(decoded_token)
+    except ValidationError as v:
+        print(f"Auth Exception: Can not validate token.\n Message:{str(v)}")
+        print(f"Decoded token: {decoded_token}")
         raise credentials_exception
 
-    return {"user_id": payload.sub, "role": payload.role}
+    return payload.extract_user_date()
 
 def get_current_admin(
         current_user: dict = Depends(get_current_user)

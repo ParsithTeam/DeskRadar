@@ -1,3 +1,5 @@
+from fastapi import HTTPException, status as http_status
+
 from app.core.security import create_access_token, verify_password
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenCreateData
@@ -19,8 +21,20 @@ class AuthService:
 
     async def login(self, email: str, password: str) -> dict | None:
         user = await self.authenticate(email, password)
+
         if not user:
-            return None
-        token_data = TokenCreateData(user_id= user["user_id"], role=user["role"])
+            raise HTTPException(
+                status_code=http_status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        token_data = TokenCreateData(
+            user_id= user["user_id"],
+            role=user["role"],
+            name=user["name"],
+            department=user["department"],
+        )
+
         token = create_access_token(data=token_data)
         return {"access_token": token, "token_type": "bearer"}
