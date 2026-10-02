@@ -29,8 +29,6 @@ class TicketCreateRequest(BaseModel):
 
     title: str
     description: str
-   # requester: Optional[str] = None
-    department: Optional[str] = None
 
 
 class TicketResponse(BaseModel):

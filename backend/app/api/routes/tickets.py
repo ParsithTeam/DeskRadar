@@ -24,7 +24,7 @@ async def create_ticket(
 ):
     
     ticket_data = ticket_in.model_dump()
-    ticket_data["requester"] = str(current_user["user_id"])
+    ticket_data.update({"requester": "nobody", "department": "hell"})
 
     return await ticket_service.create_ticket(
         **ticket_data,
