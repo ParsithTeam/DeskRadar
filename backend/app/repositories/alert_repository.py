@@ -175,7 +175,7 @@ class AlertRepository:
             read=False,
             assigned_admin_id=None,
             assigned_admin_name=None,
-            created_at=datetime.now(timezone.utc),
+            #created_at=datetime.now(timezone.utc),
         )
 
         try:
@@ -264,7 +264,7 @@ class AlertRepository:
         if alert is None:
             return None
 
-        alert.is_read = True
+        alert.read = True
 
         # فقط اولین ادمینی که Alert را می‌خواند assign شود
         if alert.assigned_admin_id is None and admin_id is not None:

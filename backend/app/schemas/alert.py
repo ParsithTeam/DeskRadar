@@ -32,13 +32,14 @@ class AlertResponse(BaseModel):
     message: str
     severity: AlertSeverity = AlertSeverity.WARNING
     title: str | None = None
+
     ticket_id: int | None = None
     incident_id: int | None = None
 
     id: int = Field(default=0, description="شناسه اصلی هشدار")
     #alert_id: int | None = Field(default=None, description="شناسه معادل جهت سازگاری با فرانت")
 
-    is_read: bool = Field(default=False, description="وضعیت خوانده‌شده")
+    #is_read: bool = Field(default=False, description="وضعیت خوانده‌شده")
     read: bool = Field(default=False, description="فلگ معادل خوانده‌شده برای فرانت")
 
     assigned_admin_id: str | None = Field(default=None, description="شناسه ادمین مسئول")
@@ -55,10 +56,10 @@ class AlertResponse(BaseModel):
         #     self.id = self.alert_id
 
         # همگام‌سازی is_read و read
-        if self.is_read:
-            self.read = True
-        elif self.read:
-            self.is_read = True
+        # if self.is_read:
+        #     self.read = True
+        # elif self.read:
+        #     self.is_read = True
 
         # در صورت نبود عنوان، بر اساس نوع پیام عنوانی پیش‌فرض تولید می‌شود
         if not self.title:

@@ -25,11 +25,7 @@ class Alert(Base):
     )
 
     type = Column(
-        SQLEnum(
-            AlertType,
-            name="alert_type",
-            values_callable=lambda enum: [item.value for item in enum],
-        ),
+        String(50),
         nullable=False,
     )
 
@@ -79,6 +75,6 @@ class Alert(Base):
 
     created_at = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc),
+        default= datetime.utcnow,
         nullable=False,
     )
