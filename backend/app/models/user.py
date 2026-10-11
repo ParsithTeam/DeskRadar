@@ -42,7 +42,7 @@ class User(Base):
     )
 
     role: Mapped[UserRole] = mapped_column(
-        SQLEnum(UserRole, name="user_role"),
+        SQLEnum(UserRole, name="user_role", values_callable=lambda e: [x.value for x in e],),
         nullable=False,
         default=UserRole.USER
     )

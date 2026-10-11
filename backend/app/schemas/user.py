@@ -6,10 +6,9 @@ class Role(str, Enum):
     USER = "user"
     ADMIN = "admin"
 
-class User(BaseModel):
-    user_id: int
+class UserInfo(BaseModel):
+
     email: str
     department: str | None
-    full_name: str
+    name: str
     role:  Role      # user | admin
-    disabled: bool = False
