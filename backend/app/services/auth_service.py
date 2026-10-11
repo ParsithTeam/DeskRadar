@@ -38,3 +38,12 @@ class AuthService:
 
         token = create_access_token(data=token_data)
         return {"access_token": token, "token_type": "bearer"}
+
+    async def get_user_info(self, requester_id: int) -> dict | None:
+        user = await self.user_repo.get_by_id(requester_id)
+        if not user:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return user
