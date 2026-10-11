@@ -58,7 +58,7 @@ def get_kb_repository(
 
 
 def get_user_repository(
-    session: AsyncSession | None = Depends(get_session),
+    session: AsyncSession= Depends(get_session),
 ) -> UserRepository:
     return UserRepository(session=session)
 
