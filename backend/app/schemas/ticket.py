@@ -45,6 +45,7 @@ class TicketResponse(BaseModel):
     ai_analysis: AnalysisRead | None = None
 
 class AdminTicketResponse(TicketResponse):
+    requester_name: str
     ai_analysis: AdminAnalysisRead | None = None
 
 

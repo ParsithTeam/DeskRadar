@@ -21,6 +21,7 @@ class TicketModel(Base):
     description = Column(String, nullable=False)
     department = Column(String(100), nullable=True)
     requester = Column(Integer, ForeignKey("users.user_id", name="fk_tickets_requester_users", ondelete="RESTRICT"), nullable=False, index=True)
+    requester_user = relationship("User", foreign_keys=[requester])
 
 
     # ticket_status = Column(

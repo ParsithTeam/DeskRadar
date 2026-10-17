@@ -46,6 +46,7 @@ class TicketRepository:
         self,
         ticket: TicketModel,
         include_ai_details: bool = False,
+        include_requester_name: bool = False,
     ) -> dict:
 
         analysis = ticket.analysis
@@ -71,6 +72,7 @@ class TicketRepository:
             "title": ticket.title,
             "description": ticket.description,
             "requester": ticket.requester,
+            **({"requester_name": ticket.requester_user.name} if include_requester_name else {}),
             "department": ticket.department,
             "analysis_status": ticket.analysis_status.value,
             "ticket_status": ticket.ticket_status.value,
@@ -178,7 +180,11 @@ class TicketRepository:
 
     #     return ticket_list
 
-    async def get_ticket(self, query: TicketQuery) -> dict | None:
+    async def get_ticket(
+        self,
+        query: TicketQuery,
+        include_requester_name: bool = False,
+    ) -> dict | None:
 
         if self.session is None:
             return None
@@ -191,6 +197,8 @@ class TicketRepository:
             )
             .options(selectinload(TicketModel.analysis))
         )
+        if include_requester_name:
+            stmt = stmt.options(selectinload(TicketModel.requester_user))
 
         if query.ticket_id is not None:
             stmt = stmt.where(TicketModel.id == query.ticket_id)
@@ -254,7 +262,8 @@ class TicketRepository:
 
         return self._to_dict(
             ticket,
-            include_ai_details=include_ai
+            include_ai_details=include_ai,
+            include_requester_name=include_requester_name,
         )
 
 
@@ -584,7 +593,10 @@ class TicketRepository:
 
         stmt = (
             select(TicketModel)
-            .options(selectinload(TicketModel.analysis))
+            .options(
+                selectinload(TicketModel.analysis),
+                selectinload(TicketModel.requester_user),
+            )
             .where(TicketModel.id == ticket_id)
         )
 
@@ -603,7 +615,8 @@ class TicketRepository:
 
         return self._to_dict(
             ticket,
-            include_ai_details=True
+            include_ai_details=True,
+            include_requester_name=True,
         )
 
     async def get_all_tickets(self) -> list[dict]:

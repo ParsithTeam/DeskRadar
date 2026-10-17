@@ -197,9 +197,15 @@ class TicketService:
         return ticket
 
 
-    async def get_ticket_by_id(self, ticket_id: int ) -> dict | None:
-            
-            return await self.ticket_repo.get_ticket(query=TicketQuery(ticket_id=ticket_id))
+    async def get_ticket_by_id(
+        self,
+        ticket_id: int,
+        include_requester_name: bool = False,
+    ) -> dict | None:
+        return await self.ticket_repo.get_ticket(
+            query=TicketQuery(ticket_id=ticket_id),
+            include_requester_name=include_requester_name,
+        )
 
 
     async def get_user_ticket_detail(self, ticket_id:int, requester: int) -> dict:
@@ -213,7 +219,10 @@ class TicketService:
         return target_ticket
 
     async def get_admin_ticket_detail(self, ticket_id:int) -> dict:
-        target_ticket = await self.get_ticket_by_id(ticket_id=ticket_id)
+        target_ticket = await self.get_ticket_by_id(
+            ticket_id=ticket_id,
+            include_requester_name=True,
+        )
 
         if target_ticket is None:
             raise HTTPException(
