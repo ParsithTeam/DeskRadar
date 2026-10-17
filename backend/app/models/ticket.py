@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.core.utc import utc_now
 
 
 # from app.schemas.ticket import AnalysisStatus, TicketStatus
@@ -70,8 +70,8 @@ class TicketModel(Base):
     nullable=False,
     )
     fingerprint = Column(String(255), nullable=True, unique=True) # برای چلوگیری از ثبت تیکت تکراری
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
      # هر تیکت یه انالیز داره 
     analysis = relationship(  

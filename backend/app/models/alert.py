@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from app.core.utc import utc_now
 from app.schemas.alert import AlertType
 
 from sqlalchemy import (
@@ -74,7 +74,7 @@ class Alert(Base):
     )
 
     created_at = Column(
-        DateTime,
-        default= datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )

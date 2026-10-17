@@ -25,8 +25,7 @@
 #         self.created_at = datetime.now()
 
 
-from datetime import datetime
-
+from app.core.utc import utc_now
 from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy.orm import relationship
@@ -85,8 +84,8 @@ class TicketAnalysis(Base):
     raw_ai_response = Column(JSONB, nullable=True)
 
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )
 

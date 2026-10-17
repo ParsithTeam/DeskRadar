@@ -118,7 +118,7 @@
 #                 return copy.deepcopy(alert)
 #         return None
 
-from datetime import datetime, timezone
+from app.core.utc import as_utc
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -152,7 +152,7 @@ class AlertRepository:
             "assigned_admin_name": alert.assigned_admin_name,
 
             "idempotency_key": alert.idempotency_key,
-            "created_at": alert.created_at,
+            "created_at": as_utc(alert.created_at),
         }
 
     async def create_alert(self, alert_in: AlertCreate) -> dict:

@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from app.core.utc import utc_now, as_utc
 
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -24,14 +25,9 @@ class IncidentRepository:
         return self.session
 
     def _db_datetime(self, value: datetime | None) -> datetime | None:
-
-        if value is None:
-            return None
-
-        if value.tzinfo is not None:
-            return value.astimezone(timezone.utc).replace(tzinfo=None)
-
-        return value
+        # Legacy timezone-naive inputs are interpreted as already being UTC.
+        # Clients should supply an explicit offset for unambiguous conversion.
+        return as_utc(value)
 
     def _db_status(self, value: IncidentStatus | str | None) -> Incident_Status:
         if value is None:
@@ -182,9 +178,9 @@ class IncidentRepository:
             "matched_tickets": matched_tickets or [],
             "ticket_count": len(matched_tickets or []),
 
-            "created_at": incident.created_at,
-            "updated_at": incident.updated_at,
-            "resolved_at": incident.resolved_at,
+            "created_at": as_utc(incident.created_at),
+            "updated_at": as_utc(incident.updated_at),
+            "resolved_at": as_utc(incident.resolved_at),
 
             "resolved": incident.resolved_at is not None,
         }
@@ -282,7 +278,7 @@ class IncidentRepository:
 
         data = incident_in.model_dump()
 
-        now = datetime.utcnow()
+        now = utc_now()
 
         new_incident = Incident(
             title=data["title_fa"],
@@ -397,7 +393,7 @@ class IncidentRepository:
                 data["resolved_at"]
             )
 
-        incident.updated_at = datetime.utcnow()
+        incident.updated_at = utc_now()
 
         await session.flush()
 

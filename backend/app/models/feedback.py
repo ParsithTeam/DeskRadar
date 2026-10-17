@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.core.utc import utc_now
 
 from sqlalchemy import (
     Column,
@@ -58,7 +58,7 @@ class Feedback(Base):
     )
 
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )

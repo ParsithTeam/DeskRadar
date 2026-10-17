@@ -20,9 +20,7 @@
 #         self.updated_at = datetime.now()
 
 
-from datetime import datetime
-
-
+from app.core.utc import utc_now
 from app.core.database import Base
 from app.core.data_enum import Incident_Status
 
@@ -65,20 +63,20 @@ class Incident(Base):
     )
 
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )
 
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
         nullable=False,
     )
 
     resolved_at = Column(
-    DateTime,
+    DateTime(timezone=True),
     nullable=True,
     )
 

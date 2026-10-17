@@ -1,6 +1,6 @@
 
 import hashlib
-from datetime import datetime, timezone
+from app.core.utc import utc_now, as_utc
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,8 +74,8 @@ class TicketRepository:
             "ticket_status": ticket.ticket_status.value,
             "source": ticket.source.value,
             "fingerprint": ticket.fingerprint,
-            "created_at": ticket.created_at,
-            "updated_at": ticket.updated_at,
+            "created_at": as_utc(ticket.created_at),
+            "updated_at": as_utc(ticket.updated_at),
 
             "urgency": (
                 analysis.urgency.value
@@ -408,8 +408,8 @@ class TicketRepository:
             "analysis_status": new_ticket.analysis_status.value,
             "source": new_ticket.source.value,
             "fingerprint": new_ticket.fingerprint,
-            "created_at": new_ticket.created_at,
-            "updated_at": new_ticket.updated_at,
+            "created_at": as_utc(new_ticket.created_at),
+            "updated_at": as_utc(new_ticket.updated_at),
             "ai_analysis": None,
         }
 
@@ -463,7 +463,7 @@ class TicketRepository:
             new_analysis_status.value
         )
 
-        ticket.updated_at = func.now()
+        ticket.updated_at = utc_now()
 
         if new_analysis_data is not None:
 
@@ -767,7 +767,7 @@ class TicketRepository:
             )
             .values(
                 analysis_status=Analysis_Status.PENDING,
-                updated_at=func.now(),
+                updated_at=utc_now(),
             )
         )
 

@@ -1,6 +1,7 @@
 import copy
 import json
 from datetime import datetime, timezone
+from app.core.utc import utc_now, as_utc
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -131,8 +132,8 @@ class KnowledgeBaseRepository:
             "category": article.category,
             "category_label_fa": get_category_label_fa(article.category),
             "tags": article.tags or [],
-            "created_at": article.created_at,
-            "updated_at": article.updated_at,
+            "created_at": as_utc(article.created_at),
+            "updated_at": as_utc(article.updated_at),
             "author": "ادمین پشتیبانی IT",
         }
 
@@ -164,8 +165,8 @@ class KnowledgeBaseRepository:
             "category": article.category,
             "category_label_fa": get_category_label_fa(article.category),
             "tags": article.tags or [],
-            "created_at": article.created_at,
-            "updated_at": article.updated_at,
+            "created_at": as_utc(article.created_at),
+            "updated_at": as_utc(article.updated_at),
             "author": "ادمین پشتیبانی IT",
         }
 
@@ -270,8 +271,8 @@ class KnowledgeBaseRepository:
                 "category": article.category,
                 "category_label_fa": get_category_label_fa(article.category),
                 "tags": article.tags or [],
-                "created_at": article.created_at,
-                "updated_at": article.updated_at,
+                "created_at": as_utc(article.created_at),
+                "updated_at": as_utc(article.updated_at),
                 "author": "ادمین پشتیبانی IT",
             })
 
@@ -354,7 +355,7 @@ class KnowledgeBaseRepository:
             ]
 
 
-        article.updated_at = datetime.utcnow()
+        article.updated_at = utc_now()
 
 
         await self.session.flush()
@@ -368,8 +369,8 @@ class KnowledgeBaseRepository:
             "category": article.category,
             "category_label_fa": get_category_label_fa(article.category),
             "tags": article.tags or [],
-            "created_at": article.created_at,
-            "updated_at": article.updated_at,
+            "created_at": as_utc(article.created_at),
+            "updated_at": as_utc(article.updated_at),
             "author": "ادمین پشتیبانی IT",
         }
 

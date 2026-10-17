@@ -1,4 +1,4 @@
-from datetime import datetime
+from app.core.utc import utc_now
 
 from sqlalchemy import Column, Integer, String, DateTime, JSON
 
@@ -36,14 +36,14 @@ class KnowledgeArticle(Base):
     )
 
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )
 
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
         nullable=False,
     )
