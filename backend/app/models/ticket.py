@@ -11,7 +11,7 @@ from app.core.data_enum import (
     Analysis_Status,
 )
 from app.core.database import Base
-from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum, Index
+from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum, Index, ForeignKey
 
 class TicketModel(Base):
     __tablename__ = "tickets"
@@ -20,7 +20,7 @@ class TicketModel(Base):
     title = Column(String(150), nullable=False)
     description = Column(String, nullable=False)
     department = Column(String(100), nullable=True)
-    requester = Column(Integer, nullable=True) #TODO: باید حذف بشه بعد
+    requester = Column(Integer, ForeignKey("users.user_id", name="fk_tickets_requester_users", ondelete="RESTRICT"), nullable=False, index=True)
 
 
     # ticket_status = Column(

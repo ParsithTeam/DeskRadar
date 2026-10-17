@@ -21,3 +21,11 @@ class TicketNotFoundError(AppError):
     """تیکت مورد نظر پیدا نشد."""
     pass
 
+
+
+class TicketRequesterNotFoundError(AppError):
+    """The user referenced by requester does not exist."""
+
+    def __init__(self, requester: int):
+        self.requester = requester
+        super().__init__(f"User with id {requester} does not exist.")

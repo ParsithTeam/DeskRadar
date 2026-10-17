@@ -6,7 +6,7 @@ from app.repositories.querise.ticket_querise import TicketQuery
 from app.schemas.ticket import AnalysisStatus, TicketStatus, AdminTicketFilter, UserTicketFilter
 from app.repositories.ticket_repository import TicketRepository
 from app.services.analysis_service import AnalysisService
-from app.exceptions.ticket_exceptions import DuplicateTicketError, TicketPersistenceError
+from app.exceptions.ticket_exceptions import DuplicateTicketError, TicketPersistenceError, TicketRequesterNotFoundError
 from fastapi import BackgroundTasks, HTTPException, status as http_status
 
 from app.services.incident_service import IncidentService
@@ -45,6 +45,11 @@ class TicketService:
                 department=department,
                 analysis_status= AnalysisStatus.WAITING
             )
+        except TicketRequesterNotFoundError as exc:
+            raise HTTPException(
+                status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "TICKET_REQUESTER_NOT_FOUND", "message": "The authenticated user does not exist.", "requester": exc.requester},
+            ) from exc
         except DuplicateTicketError:
             raise HTTPException(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
@@ -69,7 +74,7 @@ class TicketService:
                     ticket_id=created_ticket["ticket_id"],
                 )
             else:
-                print(f"Auto-analysis skipped for ticket {created_ticket["ticket_id"]} analysis already in progress")
+                print(f"Auto-analysis skipped for ticket {created_ticket['ticket_id']} analysis already in progress")
             created_ticket["analysis_status"] = AnalysisStatus.PENDING
 
         return created_ticket

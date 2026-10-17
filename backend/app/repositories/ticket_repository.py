@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
 
 from app.models.ticket import TicketModel
+from app.models.user import User
 from app.models.ticket_analysis import TicketAnalysis
 
 from app.core.data_enum import (
@@ -25,6 +26,7 @@ from app.core.data_enum import (
 from app.exceptions.ticket_exceptions import (
     DuplicateTicketError,
     TicketPersistenceError,
+    TicketRequesterNotFoundError,
 )
 
 #-----------------------------------------
@@ -362,6 +364,18 @@ class TicketRepository:
                 "Database session is not available."
             )
 
+        # Check the authenticated requester before attempting the insert.
+        # The database FK remains authoritative if the user is deleted concurrently.
+        try:
+            user_exists = await self.session.scalar(
+                select(User.user_id).where(User.user_id == requester)
+            )
+        except SQLAlchemyError as exc:
+            await self.session.rollback()
+            raise TicketPersistenceError() from exc
+        if user_exists is None:
+            raise TicketRequesterNotFoundError(requester)
+
         fingerprint = self._generate_fingerprint(
             title=title,
             description=description,
@@ -387,9 +401,20 @@ class TicketRepository:
         except IntegrityError as exc:
             await self.session.rollback()
 
-            error_message = str(exc.orig).lower()
+            # PostgreSQL SQLSTATE identifies the exact constraint failure.
+            # Never treat arbitrary integrity errors as duplicate tickets.
+            sqlstate = getattr(exc.orig, "sqlstate", None) or getattr(exc.orig, "pgcode", None)
+            cause = getattr(exc.orig, "__cause__", None)
+            sqlstate = sqlstate or getattr(cause, "sqlstate", None)
+            constraint = getattr(exc.orig, "constraint_name", None)
+            if constraint is None:
+                constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+            if constraint is None and cause is not None:
+                constraint = getattr(cause, "constraint_name", None)
 
-            if "fingerprint" in error_message or "unique" in error_message:
+            if sqlstate == "23503" and (constraint == "fk_tickets_requester_users" or "requester" in str(exc.orig).lower()):
+                raise TicketRequesterNotFoundError(requester) from exc
+            if sqlstate == "23505" and (constraint in ("tickets_fingerprint_key", "ix_tickets_fingerprint") or "fingerprint" in str(exc.orig).lower()):
                 raise DuplicateTicketError() from exc
 
             raise TicketPersistenceError() from exc
